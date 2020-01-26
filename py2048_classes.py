@@ -1,3 +1,9 @@
+"""
+Python 2048 Game : Core Classes
+
+Originally written by Phil Rodgers, University of Strathclyde
+"""
+
 import random
 
 class Tile:

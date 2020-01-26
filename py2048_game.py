@@ -1,3 +1,9 @@
+"""
+Python 2048 Game : Basic Console Based User Interface For Game Play
+
+Originally written by Phil Rodgers, University of Strathclyde
+"""
+
 from py2048_classes import Board
 
 
