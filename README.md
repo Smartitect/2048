@@ -13,7 +13,21 @@ It was subsqequently tweaked during the course ousing the code in an assignment 
 ## Overview
 To play the game, you simply need to run the py2048_game.py file.
 
-A very basic command line interface is presented to users.  The user interaction with the game is via the keyboard as follows:
+A very basic console based user interface is presented, for example:
+
+`Number of successful moves:65, Last move attempted:DOWN:, Move status:True
+Score:536, Merge count:56, Max tile:64, Max tile coords:(4,4)
+-------------------------------------
+|        |   2    |        |   4    |
+-------------------------------------
+|        |        |   2    |   8    |
+-------------------------------------
+|        |   4    |   8    |   16   |
+-------------------------------------
+|   4    |   16   |   32   |   64   |
+-------------------------------------`
+
+The user interaction with the game is via the keyboard as follows:
 - q : quits the game;
 - w : moves UP;
 - s : moves DOWN;
