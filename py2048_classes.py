@@ -7,6 +7,9 @@ class Tile:
 
     def __init__(self, tile_value):
         self._value = tile_value
+
+    def __repr__(self):
+        return str("Tile({})".format(self._value))
     
     def set_value(self, value):
         self._value = value
@@ -34,7 +37,7 @@ class Tile:
 class Board:
 
     def __init__(self, initial_state=None, initial_score=0, initial_merge_count=0):
-        """Initialise the Board"""
+        """Initialise the Board."""
         if initial_state == None:
             self.grid = [
                 [None, None, None, None],
@@ -55,6 +58,18 @@ class Board:
             self.grid = grid
         self.score = initial_score
         self.merge_count = initial_merge_count
+    
+    def __repr__(self):
+        state = self.export_state()
+        score = self.score
+        merge_count = self.merge_count
+        return str("state={}, score={}, merge_count={}".format(state, score, merge_count))
+
+    def __str__(self):
+        """Print out full state of the Board."""
+        return_string = self.print_metrics() + "\n"
+        return_string = return_string + self.print_board()
+        return return_string
 
     def add_random_tiles(self, n):
         if self.is_board_full():
@@ -298,17 +313,56 @@ class Board:
         return True
 
     def print_board(self):
-        print("Score: " + str(self.score) + "\n")
+        """Create a user friendly view of the Board."""
+        cell_padding = 8
+        board_string = ""
         for row in self.grid:
+            board_string = board_string + ("-" * (((cell_padding + 1) * 4) + 1)) + "\n"
+            board_string = board_string + "|"
             for tile in row:
                 if tile is None:
-                    print(str(0), end='')
+                    board_string = board_string + (" " * cell_padding) + "|"
                 else:
-                    print(tile, end=''),
-            print("")
-        print()
+                    tile_value = tile.get_tile_value()
+                    board_string = board_string + str("{: ^{padding}}".format(tile_value, padding=cell_padding)) + "|"
+            board_string = board_string + "\n"
+        board_string = board_string + ("-" * (((cell_padding + 1) * 4) + 1))
+        return board_string
+
+    def print_metrics(self):
+        """Create user friendly summary of the metrics for the board."""
+        max_tile_value, max_row_idx, max_tile_idx = self.get_max_tile()
+        board_metrics = str("Score:{}, Merge count:{}, Max tile:{}, Max tile coords:({},{})".format(self.score, self.merge_count, max_tile_value, max_row_idx, max_tile_idx))
+        return board_metrics
 
     def reset_tile_merges(self):
         for row in self.grid:
             for tile in row:
                 tile and tile.reset_merged()
+    
+    def get_max_tile(self):
+        """Returns the value of the maximum tile on the board, along with its coordinates."""
+        max_tile_value = 0
+        max_row_idx = None
+        max_tile_idx = None
+        for row_idx, row in enumerate(self.grid):
+            for tile_idx, tile in enumerate(row):
+                if tile is not None:
+                    tile_value = tile.get_tile_value()
+                    if tile_value > max_tile_value:
+                        max_tile_value = tile_value
+                        max_row_idx = row_idx
+                        max_tile_idx = tile_idx
+        return max_tile_value, max_row_idx, max_tile_idx
+
+    def export_state(self):
+        grid = []
+        for row in self.grid:
+            new_row = []
+            for element in row:
+                if element is None:
+                    new_row.append(None)
+                else:
+                    new_row.append(element.get_value())
+            grid.append(new_row)
+        return grid

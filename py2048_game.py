@@ -1,4 +1,4 @@
-from Py2048 import Board
+from py2048_classes import Board
 
 
 def getchar():
