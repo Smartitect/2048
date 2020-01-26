@@ -1,6 +1,8 @@
 # 2048
 Implementation of the popular 2048 game in Python.
 
+![Screenshot of 2048 game](https://github.com/Smartitect/2048/blob/master/images/2048%20Board.png)
+
 ## Background
 The bulk of this code was provided by Phil Rodgers at University of Strathclyde.
 It was subsqequently tweaked during the course ousing the code in an assignment to apply Monte Carlo Tree Search to the game:
@@ -15,7 +17,8 @@ To play the game, you simply need to run the py2048_game.py file.
 
 A very basic console based user interface is presented, for example:
 
-`Number of successful moves:65, Last move attempted:DOWN:, Move status:True
+```
+Number of successful moves:65, Last move attempted:DOWN:, Move status:True
 Score:536, Merge count:56, Max tile:64, Max tile coords:(4,4)
 -------------------------------------
 |        |   2    |        |   4    |
@@ -25,14 +28,17 @@ Score:536, Merge count:56, Max tile:64, Max tile coords:(4,4)
 |        |   4    |   8    |   16   |
 -------------------------------------
 |   4    |   16   |   32   |   64   |
--------------------------------------`
+-------------------------------------
+```
 
 The user interaction with the game is via the keyboard as follows:
-- q : quits the game;
-- w : moves UP;
-- s : moves DOWN;
-- a : moves LEFT;
-- d : moves RIGHT.
+- **q** : quits the game;
+- **w** : moves UP;
+- **s** : moves DOWN;
+- **a** : moves LEFT;
+- **d** : moves RIGHT.
 
 ## Architecture
 The overview of the architecture is as follows:
+
+![Architecture overview](https://github.com/Smartitect/2048/blob/master/images/Core%20Game%20Architecture.png)
