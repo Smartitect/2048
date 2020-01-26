@@ -137,7 +137,7 @@ class Board:
                     self.score += tile1.get_tile_value()
                     moved = True
             if moved:
-                for i in range(x-1, 0, -1):
+                for i in range(x-1, -1, -1):
                     self.grid[y][i+1] = self.grid[y][i]
                 self.grid[y][0] = None
 
@@ -162,7 +162,7 @@ class Board:
                     self.score += tile1.get_tile_value()
                     moved = True
             if moved:
-                for i in range(y-1,0,-1):
+                for i in range(y-1,-1,-1):
                     self.grid[i+1][x] = self.grid[i][x]
                 self.grid[0][x] = None
         return moved
