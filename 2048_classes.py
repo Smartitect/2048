@@ -1,16 +1,60 @@
 import random
 
+class Tile:
+    
+    _value = 0
+    _has_merged = False
+
+    def __init__(self, tile_value):
+        self._value = tile_value
+    
+    def set_value(self, value):
+        self._value = value
+
+    def inc_value(self):
+        self._value = self._value + 1
+        self._has_merged = True
+
+    def has_merged(self):
+        return self._has_merged
+
+    def reset_merged(self):
+        self._has_merged = False
+
+    def get_value(self):
+        return self._value
+
+    def get_tile_value(self):
+        return 2 ** self._value
+
+    def __str__(self):
+        v = self._value
+        return f'{v:x}'
 
 class Board:
 
-    score = 0
-
-    grid = [
-        [None, None, None, None],
-        [None, None, None, None],
-        [None, None, None, None],
-        [None, None, None, None]
-    ]
+    def __init__(self, initial_state=None, initial_score=0, initial_merge_count=0):
+        """Initialise the Board"""
+        if initial_state == None:
+            self.grid = [
+                [None, None, None, None],
+                [None, None, None, None],
+                [None, None, None, None],
+                [None, None, None, None]
+            ]
+        else:
+            grid = []
+            for row in initial_state:
+                new_row = []
+                for element in row:
+                    if element is None:
+                        new_row.append(None)
+                    else:
+                        new_row.append(Tile(element))
+                grid.append(new_row)
+            self.grid = grid
+        self.score = initial_score
+        self.merge_count = initial_merge_count
 
     def add_random_tiles(self, n):
         if self.is_board_full():
@@ -85,6 +129,7 @@ class Board:
                     self.grid[y][x] = None
                     tile1.inc_value()
                     self.score += tile1.get_tile_value()
+                    self.merge_count += 1
                     moved = True
             if moved:
                 for i in range(y+1,4):
@@ -110,6 +155,7 @@ class Board:
                     self.grid[y][x] = None
                     tile1.inc_value()
                     self.score += tile1.get_tile_value()
+                    self.merge_count += 1
                     moved = True
             if moved:
                 for i in range(x+1, 4):
@@ -135,6 +181,7 @@ class Board:
                     self.grid[y][x] = None
                     tile1.inc_value()
                     self.score += tile1.get_tile_value()
+                    self.merge_count += 1
                     moved = True
             if moved:
                 for i in range(x-1, -1, -1):
@@ -160,6 +207,7 @@ class Board:
                     self.grid[y][x] = None
                     tile1.inc_value()
                     self.score += tile1.get_tile_value()
+                    self.merge_count += 1
                     moved = True
             if moved:
                 for i in range(y-1,-1,-1):
@@ -264,35 +312,3 @@ class Board:
         for row in self.grid:
             for tile in row:
                 tile and tile.reset_merged()
-
-
-class Tile:
-    
-    _value = 0
-    _has_merged = False
-
-    def __init__(self, tile_value):
-        self._value = tile_value
-    
-    def set_value(self, value):
-        self._value = value
-
-    def inc_value(self):
-        self._value = self._value + 1
-        self._has_merged = True
-
-    def has_merged(self):
-        return self._has_merged
-
-    def reset_merged(self):
-        self._has_merged = False
-
-    def get_value(self):
-        return self._value
-
-    def get_tile_value(self):
-        return 2 ** self._value
-
-    def __str__(self):
-        v = self._value
-        return f'{v:x}'
