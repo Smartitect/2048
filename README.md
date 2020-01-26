@@ -1,7 +1,7 @@
 # 2048
 Implementation of the popular 2048 game in Python.
 
-!(https://github.com/Smartitect/2048/blob/master/images/2048%20Board.png)
+![Screenshot of 2048 game](https://github.com/Smartitect/2048/blob/master/images/2048%20Board.png)
 
 ## Background
 The bulk of this code was provided by Phil Rodgers at University of Strathclyde.
@@ -41,4 +41,4 @@ The user interaction with the game is via the keyboard as follows:
 ## Architecture
 The overview of the architecture is as follows:
 
-!(https://github.com/Smartitect/2048/blob/master/images/Core%20Game%20Architecture.png)
+![Architecture overview](https://github.com/Smartitect/2048/blob/master/images/Core%20Game%20Architecture.png)
