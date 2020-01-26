@@ -332,7 +332,7 @@ class Board:
     def print_metrics(self):
         """Create user friendly summary of the metrics for the board."""
         max_tile_value, max_row_idx, max_tile_idx = self.get_max_tile()
-        board_metrics = str("Score:{}, Merge count:{}, Max tile:{}, Max tile coords:({},{})".format(self.score, self.merge_count, max_tile_value, max_row_idx, max_tile_idx))
+        board_metrics = str("Score:{}, Merge count:{}, Max tile:{}, Max tile coords:({},{})".format(self.score, self.merge_count, max_tile_value, max_row_idx + 1, max_tile_idx + 1))
         return board_metrics
 
     def reset_tile_merges(self):

@@ -33,20 +33,20 @@ def main():
     move_result = False
     
     while True:
-        print("Number of moves:{}, Last move:{}:, Move status:{}".format(move_counter, move, move_result))
+        print("Number of successful moves:{}, Last move attempted:{}:, Move status:{}".format(move_counter, move, move_result))
         print(board)
         key = getchar()
 
-        if key == b'q':
+        if key == b'q' or key == 'q':
             quit()
 
-        if key == b'w':
+        if key == b'w' or key == 'w':
             move = 'UP'
-        elif key == b'a':
+        elif key == b'a' or key == 'a':
             move = 'LEFT'
-        elif key == b's':
+        elif key == b's' or key == 's':
             move = 'DOWN'
-        elif key == b'd':
+        elif key == b'd' or key == 'd':
             move = 'RIGHT'
         else:
             move = None
