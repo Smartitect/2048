@@ -34,21 +34,21 @@ def main():
         board.print_board()
         key = getchar()
 
-        if key == 'q':
+        if key == b'q':
             quit()
 
         move = None
 
-        if key == 'w':
+        if key == b'w':
             move = 'UP'
 
-        if key == 'a':
+        if key == b'a':
             move = 'LEFT'
 
-        if key == 's':
+        if key == b's':
             move = 'DOWN'
 
-        if key == 'd':
+        if key == b'd':
             move = 'RIGHT'
 
         if move is not None:
