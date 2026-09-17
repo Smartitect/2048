@@ -180,3 +180,59 @@ def step_then_reason_reported(context):
 @then("the model was not asked")
 def step_then_not_asked(context):
     assert not context.stub.asked, "the model was asked when it did not need to be"
+
+
+@when("the AI state is built after the moves {directions}")
+def step_when_state_built_after_moves(context, directions):
+    played = [d.strip() for d in directions.split(",")]
+    context.ai_state = build_state(context.board, len(played), played)
+
+
+@then("the AI state reports {count:d} mergeable pairs")
+def step_then_state_merges(context, count):
+    actual = state_for(context)["board"]["merges_available"]
+    assert actual == count, f"expected {count} mergeable pairs, got {actual}"
+
+
+@then("the AI state reports tile ordering {value:f}")
+def step_then_state_ordering(context, value):
+    actual = state_for(context)["board"]["monotonicity"]
+    assert actual == value, f"expected tile ordering {value}, got {actual}"
+
+
+@then("the AI state reports tile ordering below {value:f}")
+def step_then_state_ordering_below(context, value):
+    actual = state_for(context)["board"]["monotonicity"]
+    assert actual < value, f"tile ordering {actual} is not below {value}"
+
+
+@then("the AI state recent moves are {directions}")
+def step_then_state_recent_moves(context, directions):
+    expected = [d.strip() for d in directions.split(",")]
+    actual = state_for(context)["history"]["recent_moves"]
+    assert actual == expected, f"recent moves {actual}, expected {expected}"
+
+
+@then("after {direction} the moves available are {directions}")
+def step_then_moves_available_after(context, direction, directions):
+    expected = {d.strip() for d in directions.split(",")}
+    actual = set(state_for(context)["available_moves"][direction]["moves_available_after"])
+    assert actual == expected, f"after {direction}: {sorted(actual)}, expected {sorted(expected)}"
+
+
+@then("after {direction} the board has {count:d} mergeable pairs")
+def step_then_merges_after(context, direction, count):
+    actual = state_for(context)["available_moves"][direction]["merges_available_after"]
+    assert actual == count, f"after {direction}: {actual} mergeable pairs, expected {count}"
+
+
+@then("{direction} could end the game")
+def step_then_could_end(context, direction):
+    result = state_for(context)["available_moves"][direction]
+    assert result["could_end_the_game"], f"{direction} is not reported as risky"
+
+
+@then("{direction} could not end the game")
+def step_then_could_not_end(context, direction):
+    result = state_for(context)["available_moves"][direction]
+    assert not result["could_end_the_game"], f"{direction} is reported as risky"

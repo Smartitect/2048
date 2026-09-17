@@ -30,9 +30,11 @@ MODEL = "jev-latest"
 CONFIDENCE_THRESHOLD = 0.15
 
 MOVE_INSTRUCTIONS = (
-    "Which move gives the best position in 2048? Prefer keeping the largest tile "
-    "in a corner and keeping empty cells available, and avoid moves that leave the "
-    "board nearly full."
+    "Which move gives the best position in 2048? Keep the largest tile in its "
+    "corner and the tiles ordered so they step down from it, keep empty cells "
+    "available, and prefer a move that sets up merges for the turn after. Avoid "
+    "moves that leave few legal directions, that an unlucky spawn could end the "
+    "game, and that repeat what the recent moves have already tried."
 )
 
 RISK_INSTRUCTIONS = "How much trouble is this board in?"
@@ -109,9 +111,14 @@ class JevPlayer:
             await self._client.aclose()
             self._client = None
 
-    async def choose(self, board, moves_played=0):
-        """Pick the next move, and say who picked it."""
-        state = build_state(board, moves_played)
+    async def choose(self, board, moves_played=0, recent_moves=()):
+        """Pick the next move, and say who picked it.
+
+        `recent_moves` is the game's own history: each call is otherwise
+        stateless, so without it the model cannot see a game going round in
+        circles.
+        """
+        state = build_state(board, moves_played, recent_moves)
         criteria = move_criteria(state)
 
         if not criteria:

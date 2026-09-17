@@ -1,14 +1,4 @@
 {
-  "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true,
-    "feature-dev@claude-plugins-official": true,
-    "claude-code-setup@claude-plugins-official": true,
-    "remember@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "python-executable-specifications@endjin-data": true
-  },
   "permissions": {
     "allow": [
       "Bash(uv sync)",
@@ -46,5 +36,16 @@
       "Bash(git branch:*)",
       "Bash(pwsh ./.devcontainer/smoke-test.ps1)"
     ]
+  },
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "remember@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "python-executable-specifications@endjin-data": true,
+    "diagram-design@diagram-design": true
   }
 }

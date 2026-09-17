@@ -133,3 +133,89 @@ Feature: An AI player chooses the moves
     When the AI player chooses a move
     Then the model was not asked
     And the chosen move is None
+
+  Scenario: The state counts the merges the board already has
+    Given a board
+      | 2 | 2 | 4 |   |
+      |   |   | 4 |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    Then the AI state reports 2 mergeable pairs
+
+  Scenario: A board built into a corner is reported as ordered
+    Given a board
+      | 16 | 8 | 4 | 2 |
+      | 8  | 4 | 2 |   |
+      | 4  | 2 |   |   |
+      | 2  |   |   |   |
+    Then the AI state reports tile ordering 1.0
+
+  Scenario: The ordering is measured from whichever corner the game is built into
+    Given a board
+      |   |   |   | 2  |
+      |   |   | 2 | 4  |
+      |   | 2 | 4 | 8  |
+      | 2 | 4 | 8 | 16 |
+    Then the AI state reports tile ordering 1.0
+
+  Scenario: A board with its big tile stranded in the middle is not ordered
+    Given a board
+      | 2 |    |   | 4 |
+      |   | 16 | 8 |   |
+      | 4 |    |   |   |
+      |   | 2  |   | 8 |
+    Then the AI state reports tile ordering below 0.7
+
+  Scenario: Each move says how much room it leaves for the next one
+    Given a board
+      | 16 |   |   |   |
+      | 2  |   |   |   |
+      | 8  |   |   |   |
+      | 4  |   |   |   |
+    Then after RIGHT the moves available are LEFT
+
+  Scenario: Each move says what it sets up for the turn after
+    Given a board
+      | 2 |   |   | 4 |
+      |   | 2 | 4 |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    Then the AI state reports 0 mergeable pairs
+    And after LEFT the board has 2 mergeable pairs
+
+  Scenario: A move that an unlucky spawn could kill says so
+    Given a board
+      | 2 | 4 | 2 | 4 |
+      | 4 | 2 | 4 | 2 |
+      | 2 | 4 | 2 | 4 |
+      |   | 4 | 2 | 4 |
+    Then LEFT could end the game
+    And DOWN could not end the game
+    And the description of LEFT mentions "would end the game"
+
+  Scenario: The description carries the same facts as the state
+    Given a board
+      | 2 | 2 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    Then the description of LEFT mentions "legal direction(s)"
+    And the description of LEFT mentions "tile ordering"
+
+  Scenario: The state carries the recent moves, so a game going in circles is visible
+    Given a board
+      | 2 | 4 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    When the AI state is built after the moves RIGHT, DOWN, RIGHT, DOWN
+    Then the AI state recent moves are RIGHT, DOWN, RIGHT, DOWN
+
+  Scenario: Only the recent moves cross, not the whole transcript
+    Given a board
+      | 2 | 4 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    When the AI state is built after the moves UP, UP, LEFT, RIGHT, DOWN, RIGHT, DOWN, LEFT
+    Then the AI state recent moves are LEFT, RIGHT, DOWN, RIGHT, DOWN, LEFT

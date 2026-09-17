@@ -55,7 +55,9 @@ class AgentRunner:
                 board = self.session.board
                 if not board.can_move():
                     break
-                move, record = await self.player.choose(board, self.session.moves)
+                move, record = await self.player.choose(
+                    board, self.session.moves, self.session.history
+                )
                 if move is None:
                     break
                 await self.session.apply_move(move, record)
