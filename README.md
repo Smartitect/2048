@@ -14,6 +14,7 @@ everything below then works with no further setup.
 ```bash
 uv run py2048           # console user interface
 uv run py2048-pygame    # pygame user interface
+uv run py2048-web       # browser user interface, on http://127.0.0.1:8000
 ```
 
 Outside the dev container you need [uv] and Python 3.12. `uv run` syncs the environment
@@ -24,6 +25,10 @@ virtualenv to activate.
 
 The pygame UI uses the arrow keys. **R** starts a new game and **Esc** quits. When no
 move is left, the board dims and reports the final score.
+
+The browser UI uses the arrow keys as well, or W A S D, with a button for a new game.
+The Python engine stays in charge: the page posts moves and renders the board that comes
+back, pushed over server-sent events, so two open tabs stay in step.
 
 The console UI is keyboard driven too, and prints the board as text:
 
@@ -57,11 +62,13 @@ Score:372, Merge count:46, Max tile:32, Max tile coords:(2,1)
 src/py2048/engine.py      Board + Tile. The engine: all game logic.
 src/py2048/console.py     Console UI.    Entry point: py2048
 src/py2048/pygame_ui.py   Pygame UI.     Entry point: py2048-pygame
+src/py2048/web/           Browser UI.    Entry point: py2048-web
 ```
 
-Both front-ends are independent consumers of one `Board`, and neither reaches into the
-other. That split is what lets the engine be driven by a search algorithm instead of a
-keyboard, and it is worth preserving.
+All three front-ends are independent consumers of one `Board`, and none reaches into
+another. That split is what lets the engine be driven by a search algorithm instead of a
+keyboard, and it is worth preserving — the browser UI in particular holds no game logic
+at all, which is what makes it a good window onto a search playing the game.
 
 Two conventions are worth knowing before reading the code:
 

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>py2048</title>
+<style>
+  :root {
+    --background: #faf8ef;
+    --board: #bcada0;
+    --empty: #cec0b3;
+    --text-dark: #776e64;
+    --text-light: #ffffff;
+    --gap: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 40px;
+    background: var(--background);
+    color: var(--text-dark);
+    font: 16px/1.4 "Segoe UI", system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 { font-size: 40px; margin: 0 0 4px; letter-spacing: -1px; }
+  .subtitle { margin: 0 0 20px; font-size: 14px; opacity: 0.8; }
+  .metrics { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+  .metric {
+    background: var(--board); color: var(--text-light);
+    border-radius: 6px; padding: 8px 16px; min-width: 88px; text-align: center;
+  }
+  .metric span { display: block; }
+  .metric .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; }
+  .metric .value { font-size: 22px; font-weight: 700; }
+  .board-wrapper { position: relative; }
+  .board {
+    background: var(--board); border-radius: 8px; padding: var(--gap);
+    display: grid; grid-template-columns: repeat(4, 100px); gap: var(--gap);
+  }
+  .cell {
+    width: 100px; height: 100px; border-radius: 4px;
+    background: var(--empty); color: var(--text-dark);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 700;
+  }
+  .overlay {
+    position: absolute; inset: 0; border-radius: 8px;
+    background: rgba(238, 228, 218, 0.78);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; text-align: center;
+  }
+  .overlay[hidden] { display: none; }
+  .overlay h2 { margin: 0; font-size: 40px; }
+  .controls { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
+  button {
+    font: inherit; font-weight: 700; cursor: pointer;
+    background: #8e7a66; color: var(--text-light);
+    border: 0; border-radius: 6px; padding: 10px 18px;
+  }
+  button:hover { background: #7d6a58; }
+  .hint { margin-top: 18px; font-size: 13px; opacity: 0.75; text-align: center; }
+  .status { margin-top: 8px; font-size: 13px; min-height: 18px; }
+  .status.offline { color: #b04a3a; font-weight: 700; }
+  @media (max-width: 480px) {
+    .board { grid-template-columns: repeat(4, 70px); }
+    .cell { width: 70px; height: 70px; font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+  <h1>2048</h1>
+  <p class="subtitle">The Python engine is playing; this page is only watching.</p>
+
+  <div class="metrics">
+    <div class="metric"><span class="label">Score</span><span class="value" id="score">0</span></div>
+    <div class="metric"><span class="label">Moves</span><span class="value" id="moves">0</span></div>
+    <div class="metric"><span class="label">Merges</span><span class="value" id="merges">0</span></div>
+    <div class="metric"><span class="label">Max tile</span><span class="value" id="max-tile">0</span></div>
+  </div>
+
+  <div class="board-wrapper">
+    <div class="board" id="board"></div>
+    <div class="overlay" id="overlay" hidden>
+      <h2>Game over</h2>
+      <p id="final">No moves remain.</p>
+      <button id="overlay-new">New game</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="new-game">New game</button>
+  </div>
+
+  <p class="hint">Arrow keys to play. W A S D works too.</p>
+  <p class="status" id="status"></p>
+
+<script>
+  // Tile colours, keyed by value. Anything above 2048 keeps the top colour.
+  const TILE_STYLES = {
+    2: ["#eee5da", "#776e64"], 4: ["#eee1c7", "#776e64"],
+    8: ["#f2b179", "#ffffff"], 16: ["#f59563", "#ffffff"],
+    32: ["#f57c5f", "#ffffff"], 64: ["#f45c3d", "#ffffff"],
+    128: ["#edd073", "#ffffff"], 256: ["#edcc62", "#ffffff"],
+    512: ["#edc850", "#ffffff"], 1024: ["#edc53f", "#ffffff"],
+    2048: ["#edc22e", "#ffffff"], 4096: ["#238c51", "#ffffff"],
+    8192: ["#1982cd", "#ffffff"]
+  };
+
+  const KEY_MOVES = {
+    ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT",
+    w: "UP", s: "DOWN", a: "LEFT", d: "RIGHT",
+    W: "UP", S: "DOWN", A: "LEFT", D: "RIGHT"
+  };
+
+  const board = document.getElementById("board");
+  const overlay = document.getElementById("overlay");
+  const status = document.getElementById("status");
+
+  const cells = [];
+  for (let i = 0; i < 16; i++) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    board.appendChild(cell);
+    cells.push(cell);
+  }
+
+  function render(state) {
+    // The grid arrives as grid[y][x], the same way round the engine holds it.
+    state.grid.flat().forEach((value, index) => {
+      const cell = cells[index];
+      const [fill, text] = TILE_STYLES[value] || ["#125b92", "#ffffff"];
+      cell.textContent = value === null ? "" : value;
+      cell.style.background = value === null ? "var(--empty)" : fill;
+      cell.style.color = text;
+    });
+    document.getElementById("score").textContent = state.score;
+    document.getElementById("moves").textContent = state.moves;
+    document.getElementById("merges").textContent = state.mergeCount;
+    document.getElementById("max-tile").textContent = state.maxTile;
+    document.getElementById("final").textContent =
+      `Score ${state.score} in ${state.moves} moves.`;
+    overlay.hidden = !state.gameOver;
+  }
+
+  async function send(path, body) {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body || {})
+    });
+    if (!response.ok) {
+      status.textContent = `Request failed: ${response.status}`;
+      return null;
+    }
+    return response.json();
+  }
+
+  document.addEventListener("keydown", (event) => {
+    const move = KEY_MOVES[event.key];
+    if (!move) return;
+    event.preventDefault();          // stop the arrow keys scrolling the page
+    send("/api/move", {direction: move});
+  });
+
+  document.getElementById("new-game").addEventListener("click", () => send("/api/new"));
+  document.getElementById("overlay-new").addEventListener("click", () => send("/api/new"));
+
+  // State arrives by push. Every change on the server reaches every open tab,
+  // so two windows stay in step and an engine playing itself needs nothing more.
+  function listen() {
+    const events = new EventSource("/api/events");
+    events.onmessage = (event) => {
+      status.textContent = "";
+      status.className = "status";
+      render(JSON.parse(event.data));
+    };
+    events.onerror = () => {
+      status.textContent = "Connection lost - retrying.";
+      status.className = "status offline";
+      events.close();
+      setTimeout(listen, 2000);
+    };
+  }
+
+  fetch("/api/state").then((response) => response.json()).then(render);
+  listen();
+</script>
+</body>
+</html>

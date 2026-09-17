@@ -14,6 +14,16 @@ import random
 DEFAULT_SEED = 2048
 
 
+def after_scenario(context, scenario):
+    # A scenario that started a real web server has to stop it, or behave will
+    # not exit.
+    server = getattr(context, "server", None)
+    if server is not None:
+        server.should_exit = True
+        context.server_thread.join(timeout=10)
+        context.server = None
+
+
 def before_scenario(context, scenario):
     random.seed(DEFAULT_SEED)
     context.board = None

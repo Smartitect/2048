@@ -4,13 +4,16 @@ version = "0.1.0"
 description = "Implementation of the 2048 game in Python, with an engine built for AI search."
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.141.1",
     "pygame>=2.6.1",
+    "uvicorn[standard]>=0.53.0",
 ]
 
 # Launch either front-end by name: `uv run py2048` / `uv run py2048-pygame`.
 [project.scripts]
 py2048 = "py2048.console:main"
 py2048-pygame = "py2048.pygame_ui:main"
+py2048-web = "py2048.web.app:run"
 
 [build-system]
 requires = ["hatchling"]
@@ -22,6 +25,7 @@ packages = ["src/py2048"]
 [dependency-groups]
 dev = [
     "behave>=1.2.6",
+    "httpx>=0.28.1",
     "ipykernel>=6.29.0",
 ]
 
