@@ -13,11 +13,29 @@ syncs first.
 uv sync                             # after pulling a changed pyproject.toml or uv.lock
 uv run py2048                       # console UI
 uv run py2048-pygame                # pygame UI
-uv run behave                       # executable specs (once #10 lands)
+uv run behave                       # executable specs
+uv run behave features/movement.feature  # one feature
 pwsh .devcontainer/smoke-test.ps1   # verify the container build
 ```
 
 Headless pygame (for tests and CI): `SDL_VIDEODRIVER=dummy`.
+
+## Specifications
+
+`features/` is the safety net for everything that changes the engine, and the
+reason #6 can change the board representation without changing behaviour.
+
+- Feature files speak in **tile values** (2, 4, 8); the exponent conversion lives in
+  the step definitions, so a scenario reads like the screen.
+- A board table is four rows with **no header**. behave reads the first row as the
+  headings, and `grid_from_table` puts it back — do not add a header row to make it
+  look conventional, the grid is the point.
+- Rules that hold in all four directions are written once with the *line notation*:
+  `the line facing <direction> is "2 2 2 ."`, where index 0 is the edge the move
+  pushes toward and `.` is an empty cell. One scenario, four directions.
+- Randomness is seeded per scenario in `features/environment.py`. Assert a replay
+  with the same seed rather than hard-coding spawn coordinates, which would pin the
+  specs to the internals of `random.sample`.
 
 ## Rules
 
@@ -66,7 +84,6 @@ Work is issue-driven and incremental. The backlog lives in GitHub issues
 |---|---|---|
 | 1 — foundation | #7 dev container | — |
 | 2 — correctness | #8 `add_random_tiles` hang, #9 game-over detection | #7 |
-| 3 — safety net | #10 behave specs | #16 |
 | 4 — tidy | #11 README, #12 debug leftovers, #13 pygame coordinates, #14 spawn probability | #13 needs #10 |
 | 5 — features | #15 browser UX, #6 engine performance | #6 needs **#10** |
 
