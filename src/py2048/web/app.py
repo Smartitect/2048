@@ -15,11 +15,19 @@ import asyncio
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
+from ..agent import JevPlayer
+from ..agent.jev import api_key
+from ..agent.runner import AgentRunner
 from ..engine import Board
+
+# The API key for the AI player lives in a gitignored .env at the repository
+# root. It is read here, server side, and never reaches the browser.
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 STATIC = Path(__file__).parent / "static"
 
@@ -35,6 +43,10 @@ class MoveRequest(BaseModel):
     direction: str
 
 
+class AgentRequest(BaseModel):
+    intervalSeconds: float | None = None
+
+
 class GameSession:
     """One game, plus whoever is watching it.
 
@@ -45,6 +57,9 @@ class GameSession:
     def __init__(self):
         self._lock = asyncio.Lock()
         self._subscribers = set()
+        # Set before new_game, and outlives it: restarting the game must not
+        # drop the runner that may be driving it.
+        self.agent = None
         self.new_game()
 
     def new_game(self):
@@ -52,6 +67,7 @@ class GameSession:
         self.board.add_random_tiles(2)
         self.moves = 0
         self.last_move = None
+        self.decision = None
 
     def state(self):
         """The board as tile values: the browser never sees an exponent."""
@@ -67,10 +83,22 @@ class GameSession:
             "lastMove": self.last_move,
             "gameOver": not self.board.can_move(),
             "maxTile": max_tile,
+            # What chose the last move, and how sure it was. The browser shows
+            # this alongside the board: the point is watching why it moved.
+            "decision": self.decision,
+            "agent": {
+                "running": self.agent.running if self.agent else False,
+                "intervalSeconds": self.agent.interval if self.agent else None,
+                "keyConfigured": api_key() is not None,
+            },
         }
 
-    async def apply_move(self, direction):
-        """Play one move. Returns the new state and whether the board changed."""
+    async def apply_move(self, direction, decision=None):
+        """Play one move. Returns the new state and whether the board changed.
+
+        `decision` records who chose it and why, so the browser can tell a move
+        the model made from one the person watching made.
+        """
         if direction not in DIRECTIONS:
             raise ValueError(f"{direction} is not one of {', '.join(DIRECTIONS)}")
         async with self._lock:
@@ -79,6 +107,7 @@ class GameSession:
                 self.board.add_random_tiles(1)
                 self.moves = self.moves + 1
                 self.last_move = direction
+            self.decision = decision
             state = self.state()
         await self.broadcast(state)
         return state, moved
@@ -102,10 +131,25 @@ class GameSession:
         for queue in list(self._subscribers):
             queue.put_nowait(state)
 
+    async def announce(self):
+        """Push the current state without changing anything."""
+        async with self._lock:
+            state = self.state()
+        await self.broadcast(state)
+        return state
 
-def create_app():
+
+def create_app(player=None):
+    """Build the app. A player can be supplied to run without the live model."""
     app = FastAPI(title="py2048")
     app.state.session = GameSession()
+    app.state.player = player or JevPlayer()
+    app.state.session.agent = AgentRunner(app.state.session, app.state.player)
+
+    @app.on_event("shutdown")
+    async def shutdown():
+        await app.state.session.agent.stop()
+        await app.state.player.close()
 
     @app.get("/")
     async def index():
@@ -117,14 +161,38 @@ def create_app():
 
     @app.post("/api/move")
     async def post_move(request: MoveRequest):
+        human = {
+            "move": request.direction.upper(),
+            "source": "human",
+            "reason": None,
+            "probabilities": None,
+            "confidence": None,
+            "risk": None,
+            "latencyMs": None,
+        }
         try:
-            state, moved = await app.state.session.apply_move(request.direction.upper())
+            state, moved = await app.state.session.apply_move(
+                request.direction.upper(), human
+            )
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error))
         return {"moved": moved, "state": state}
 
+    @app.post("/api/agent/start")
+    async def start_agent(request: AgentRequest | None = None):
+        """Hand the game to the AI player."""
+        interval = request.intervalSeconds if request else None
+        started = await app.state.session.agent.start(interval)
+        return {"started": started, "state": await app.state.session.announce()}
+
+    @app.post("/api/agent/stop")
+    async def stop_agent():
+        stopped = await app.state.session.agent.stop()
+        return {"stopped": stopped, "state": app.state.session.state()}
+
     @app.post("/api/new")
     async def post_new():
+        """Start again. The AI player keeps going if it was already playing."""
         return await app.state.session.restart()
 
     @app.get("/api/events")

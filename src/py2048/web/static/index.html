@@ -61,6 +61,28 @@
   }
   button:hover { background: #7d6a58; }
   .hint { margin-top: 18px; font-size: 13px; opacity: 0.75; text-align: center; }
+  .decision {
+    margin-top: 18px; width: 460px; max-width: 100%;
+    background: #ede4da; border-radius: 8px; padding: 14px 16px;
+  }
+  .decision[hidden] { display: none; }
+  .decision-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 8px; margin-bottom: 10px; font-size: 13px;
+  }
+  .decision-head strong { font-size: 15px; }
+  .badge {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    padding: 3px 8px; border-radius: 4px; background: #8e7a66; color: #fff;
+  }
+  .badge.fallback { background: #b04a3a; }
+  .badge.human { background: #6f8f6a; }
+  .bar-row { display: grid; grid-template-columns: 54px 1fr 44px; gap: 8px; align-items: center;
+             font-size: 12px; margin-bottom: 4px; }
+  .bar { background: #d8ccc0; border-radius: 3px; height: 14px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: #8e7a66; }
+  .bar-row.picked span { background: #f2b179; }
+  .reason { margin: 8px 0 0; font-size: 12px; color: #8a4433; }
   .status { margin-top: 8px; font-size: 13px; min-height: 18px; }
   .status.offline { color: #b04a3a; font-weight: 700; }
   @media (max-width: 480px) {
@@ -90,7 +112,25 @@
   </div>
 
   <div class="controls">
+    <button id="agent-toggle">Let Jev play</button>
+    <label class="hint" for="interval">every</label>
+    <select id="interval">
+      <option value="0.25">0.25s</option>
+      <option value="0.5">0.5s</option>
+      <option value="1" selected>1s</option>
+      <option value="2">2s</option>
+    </select>
     <button id="new-game">New game</button>
+  </div>
+
+  <div class="decision" id="decision" hidden>
+    <div class="decision-head">
+      <strong id="decision-move">-</strong>
+      <span id="decision-meta"></span>
+      <span class="badge" id="decision-source">jev</span>
+    </div>
+    <div id="decision-bars"></div>
+    <p class="reason" id="decision-reason" hidden></p>
   </div>
 
   <p class="hint">Arrow keys to play. W A S D works too.</p>
@@ -114,6 +154,7 @@
     W: "UP", S: "DOWN", A: "LEFT", D: "RIGHT"
   };
 
+  let agentRunning = false;
   const board = document.getElementById("board");
   const overlay = document.getElementById("overlay");
   const status = document.getElementById("status");
@@ -142,6 +183,61 @@
     document.getElementById("final").textContent =
       `Score ${state.score} in ${state.moves} moves.`;
     overlay.hidden = !state.gameOver;
+    renderDecision(state);
+    renderAgent(state);
+  }
+
+  const RISK_WORDS = ["room to work", "getting crowded", "nearly stuck"];
+
+  function renderDecision(state) {
+    const decision = state.decision;
+    const panel = document.getElementById("decision");
+    if (!decision) { panel.hidden = true; return; }
+    panel.hidden = false;
+
+    document.getElementById("decision-move").textContent = decision.move || "no move";
+
+    const source = document.getElementById("decision-source");
+    source.textContent = decision.source;
+    source.className = "badge " + decision.source;
+
+    const bits = [];
+    if (decision.confidence !== null && decision.confidence !== undefined) {
+      bits.push(`confidence ${decision.confidence.toFixed(2)}`);
+    }
+    if (decision.risk !== null && decision.risk !== undefined) {
+      const word = RISK_WORDS[Math.round(decision.risk)] || "";
+      bits.push(`risk ${decision.risk.toFixed(2)} (${word})`);
+    }
+    if (decision.latencyMs) bits.push(`${decision.latencyMs} ms`);
+    document.getElementById("decision-meta").textContent = bits.join(" \u00b7 ");
+
+    const bars = document.getElementById("decision-bars");
+    bars.innerHTML = "";
+    const probabilities = decision.probabilities || {};
+    for (const [direction, probability] of Object.entries(probabilities)) {
+      const row = document.createElement("div");
+      row.className = "bar-row" + (direction === decision.move ? " picked" : "");
+      row.innerHTML =
+        `<span>${direction}</span>` +
+        `<span class="bar"><span style="width:${(probability * 100).toFixed(1)}%"></span></span>` +
+        `<span>${(probability * 100).toFixed(0)}%</span>`;
+      bars.appendChild(row);
+    }
+
+    const reason = document.getElementById("decision-reason");
+    reason.hidden = !decision.reason;
+    reason.textContent = decision.reason ? `Fell back: ${decision.reason}` : "";
+  }
+
+  function renderAgent(state) {
+    const agent = state.agent || {};
+    agentRunning = !!agent.running;
+    const button = document.getElementById("agent-toggle");
+    button.textContent = agentRunning ? "Stop Jev" : "Let Jev play";
+    if (!agent.keyConfigured) {
+      button.title = "No TYPESAFE_API_KEY set - a local fallback policy will play instead";
+    }
   }
 
   async function send(path, body) {
@@ -165,6 +261,11 @@
   });
 
   document.getElementById("new-game").addEventListener("click", () => send("/api/new"));
+
+  document.getElementById("agent-toggle").addEventListener("click", () => {
+    const interval = parseFloat(document.getElementById("interval").value);
+    send(agentRunning ? "/api/agent/stop" : "/api/agent/start", {intervalSeconds: interval});
+  });
   document.getElementById("overlay-new").addEventListener("click", () => send("/api/new"));
 
   // State arrives by push. Every change on the server reaches every open tab,

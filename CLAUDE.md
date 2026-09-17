@@ -40,6 +40,9 @@ reason #6 can change the board representation without changing behaviour.
 - `web_api.feature` drives the browser API through FastAPI's `TestClient`, except for
   the event stream, which runs against a real uvicorn server on a free port — an
   in-process client cannot tear down an endless stream. `after_scenario` stops it.
+- `ai_player.feature` stubs the model. What is worth pinning down is the state we send,
+  that only legal moves are offered and that fallbacks say why; whether Jev plays 2048
+  well is not something a specification can assert. **No spec calls the live API.**
 - Randomness is seeded per scenario in `features/environment.py`. Assert a replay
   with the same seed rather than hard-coding spawn coordinates, which would pin the
   specs to the internals of `random.sample`.
@@ -62,6 +65,7 @@ src/py2048/engine.py      Board + Tile. The engine. All game logic.
 src/py2048/console.py     Console UI.     Entry point: py2048
 src/py2048/pygame_ui.py   Pygame UI.      Entry point: py2048-pygame
 src/py2048/web/           Browser UI.     Entry point: py2048-web
+src/py2048/agent/         AI players. state.py builds the JSON, jev.py asks the model.
 ```
 
 The engine/UI split is clean and worth preserving: all three front-ends are independent
@@ -71,9 +75,22 @@ The browser UI (#15) keeps the engine authoritative: no game logic in JavaScript
 page posts moves and renders what comes back, with state pushed over server-sent events
 at `/api/events`. State crosses the wire as tile **values**, never exponents.
 
+The AI player (#31) is a fourth consumer of the same `Board`. `agent/state.py` builds the
+JSON state — including what each move *would* do, played out on a copy — and
+`agent/jev.py` asks TypeSafe AI's Jev for a `Choice` between the legal directions. Two
+rules hold: only legal moves are offered, so an illegal answer is unrepresentable; and a
+fallback is never silent — no key, an API error or low confidence falls back to a local
+policy and says so in the UI.
+
 Board state is `grid[y][x]`, indexed row-then-column, with `None` for an empty cell.
 Tiles store the *exponent* (`Tile(1)` renders as 2, `Tile(3)` as 8), so `get_value()`
 returns the exponent and `get_tile_value()` returns `2 ** exponent`.
+
+## Secrets
+
+`TYPESAFE_API_KEY` lives in `.env` at the repository root, which is gitignored; `.env.example`
+is committed. It is read server-side in `web/app.py` and never reaches the browser. With no
+key set everything still runs — the AI player falls back to a local policy, marked as such.
 
 ## Known traps
 

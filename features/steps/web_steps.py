@@ -165,3 +165,116 @@ def step_then_stream_pushes(context):
             client.post("/api/new")
             restarted = next_event(lines)
             assert restarted["moves"] == 0, f"restart pushed {restarted['moves']} moves"
+
+
+class ScriptedPlayer:
+    """A player that answers instantly, so the endpoint specs never call out."""
+
+    def __init__(self):
+        self.moves_made = 0
+
+    async def choose(self, board, moves_played=0):
+        from py2048.agent import build_state, move_criteria
+
+        options = move_criteria(build_state(board))
+        if not options:
+            return None, {"move": None, "source": "fallback", "reason": "no legal moves",
+                          "probabilities": None, "confidence": None, "risk": None,
+                          "latencyMs": None}
+        move = next(iter(options))
+        self.moves_made += 1
+        share = round(1 / len(options), 3)
+        return move, {
+            "move": move, "source": "jev", "reason": None,
+            "probabilities": {option: share for option in options},
+            "confidence": 0.9, "risk": 0.2, "latencyMs": 1,
+        }
+
+    async def close(self):
+        pass
+
+
+@given("a running web game driven by a scripted player")
+def step_given_scripted_agent(context):
+    """
+    Enter the test client, rather than just building it.
+
+    An un-entered TestClient tears its event loop down between requests, which
+    takes the agent's background task with it - the agent would look like it
+    had stopped on its own. `after_scenario` exits it.
+    """
+    context.player = ScriptedPlayer()
+    context.client = TestClient(create_app(player=context.player))
+    context.client.__enter__()
+    context.entered_client = context.client
+    context.response = None
+
+
+@given("the web game board is dead")
+def step_given_dead_board(context):
+    dead = [[1, 2, 1, 2], [2, 1, 2, 1], [1, 2, 1, 2], [2, 1, 2, 1]]
+    context.client.app.state.session.board = board_from_grid(
+        [[2 ** cell for cell in row] for row in dead]
+    )
+
+
+@when("the AI player is started")
+def step_when_agent_started(context):
+    context.response = context.client.post(
+        "/api/agent/start", json={"intervalSeconds": 0.05}
+    )
+    assert context.response.status_code == 200, context.response.text
+
+
+@when("the AI player is stopped")
+def step_when_agent_stopped(context):
+    context.response = context.client.post("/api/agent/stop")
+    assert context.response.status_code == 200, context.response.text
+
+
+@when("the AI player has made a move")
+def step_when_agent_moved(context):
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if web_state(context)["moves"] > 0:
+            return
+        time.sleep(0.05)
+    raise AssertionError("the AI player made no move within 10 seconds")
+
+
+@when("the AI player has finished")
+def step_when_agent_finished(context):
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        if not web_state(context)["agent"]["running"]:
+            return
+        time.sleep(0.05)
+    raise AssertionError("the AI player was still running after 10 seconds")
+
+
+@then("the web state reports the AI player is running")
+def step_then_agent_running(context):
+    assert web_state(context)["agent"]["running"] is True, "the AI player is not running"
+
+
+@then("the web state reports the AI player is not running")
+def step_then_agent_not_running(context):
+    assert web_state(context)["agent"]["running"] is False, "the AI player is still running"
+
+
+@then("the last decision is credited to {source}")
+def step_then_decision_source(context, source):
+    decision = web_state(context)["decision"]
+    assert decision is not None, "no decision was recorded"
+    assert decision["source"] == source, (
+        f"decision credited to {decision['source']}, expected {source}"
+    )
+
+
+@then("the last decision carries probabilities")
+def step_then_decision_probabilities(context):
+    probabilities = web_state(context)["decision"]["probabilities"]
+    assert probabilities, "the decision carried no probabilities"
+    assert abs(sum(probabilities.values()) - 1) < 0.05, (
+        f"probabilities do not add up: {probabilities}"
+    )

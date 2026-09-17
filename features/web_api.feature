@@ -86,3 +86,34 @@ Feature: Driving the game from a browser
   Scenario: Every move is pushed to a listening browser
     Given a web server is running
     Then a listening browser is sent the board, and every move that follows
+
+  Scenario: The AI player can be started and stopped from the browser
+    Given a running web game driven by a scripted player
+    When the AI player is started
+    Then the web state reports the AI player is running
+    When the AI player is stopped
+    Then the web state reports the AI player is not running
+
+  Scenario: Moves the AI player makes are credited to it
+    Given a running web game driven by a scripted player
+    When the AI player is started
+    And the AI player has made a move
+    Then the last decision is credited to jev
+    And the last decision carries probabilities
+
+  Scenario: A move made by hand is credited to the person
+    Given a running web game with the board
+      | 2 | 2 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    When LEFT is posted
+    Then the last decision is credited to human
+
+  Scenario: The AI player stops itself when the game is over
+    Given a running web game driven by a scripted player
+    And the web game board is dead
+    When the AI player is started
+    And the AI player has finished
+    Then the web state reports the AI player is not running
+    And the web state reports the game is over

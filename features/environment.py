@@ -15,6 +15,13 @@ DEFAULT_SEED = 2048
 
 
 def after_scenario(context, scenario):
+    # A test client that was entered has to be exited, which also runs the
+    # app's shutdown and stops any agent still playing.
+    client = getattr(context, "entered_client", None)
+    if client is not None:
+        client.__exit__(None, None, None)
+        context.entered_client = None
+
     # A scenario that started a real web server has to stop it, or behave will
     # not exit.
     server = getattr(context, "server", None)

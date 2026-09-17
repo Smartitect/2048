@@ -63,6 +63,7 @@ src/py2048/engine.py      Board + Tile. The engine: all game logic.
 src/py2048/console.py     Console UI.    Entry point: py2048
 src/py2048/pygame_ui.py   Pygame UI.     Entry point: py2048-pygame
 src/py2048/web/           Browser UI.    Entry point: py2048-web
+src/py2048/agent/         AI players.    Board state in, one direction out
 ```
 
 All three front-ends are independent consumers of one `Board`, and none reaches into
@@ -87,6 +88,24 @@ board.make_move("LEFT")     # True if the board changed
 board.can_move()            # False once the game is over
 board.export_state()        # the grid as a list of lists, for rollouts
 ```
+
+## Letting an AI play
+
+The browser UI can hand the game to an AI player and let you watch. Press **Let Jev play**.
+
+The board goes to [TypeSafe AI's Jev](https://docs.typesafe.ai/introduction) as JSON, along
+with what each move would do — merges, points, cells freed, whether the largest tile stays
+in a corner — all played out on a copy by the engine, so the model judges facts rather than
+imagining them. The available moves are offered as a choice between UP, DOWN, LEFT and
+RIGHT, and only the legal ones are offered.
+
+Each decision comes back with a probability for every direction and a confidence, and the
+page shows them next to the board, so you can watch *why* it moved. A decision takes around
+250ms.
+
+Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Without a key
+it still plays, using a local fallback policy that is clearly marked on screen — as are API
+errors and decisions the model was too unsure to make.
 
 ## Specifications
 
