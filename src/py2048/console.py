@@ -41,6 +41,13 @@ def main():
     while True:
         print("Number of successful moves:{}, Last move attempted:{}:, Move status:{}".format(move_counter, move, move_result))
         print(board)
+
+        # Ask before reading a key: a dead board would otherwise sit there
+        # accepting input that cannot do anything.
+        if not board.can_move():
+            print("GAME OVER - no moves remain after {} moves.".format(move_counter))
+            return
+
         key = getchar()
 
         if key == b'q' or key == 'q':
