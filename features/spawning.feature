@@ -58,3 +58,8 @@ Feature: Spawning random tiles
     And the random seed is 7
     When 2 random tiles are added
     Then re-running that with the same seed gives the same board
+
+  Scenario: A four spawns about one time in ten
+    Given an empty board
+    And the random seed is 2048
+    Then spawning 20000 tiles gives 4s about 10% of the time

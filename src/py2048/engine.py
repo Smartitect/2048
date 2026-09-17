@@ -6,6 +6,15 @@ Originally written by Phil Rodgers, University of Strathclyde
 
 import random
 
+# Standard 2048 spawns a 4 one time in ten and a 2 the rest of the time. This
+# engine used to spawn a 4 one time in five, which made the game harder and put
+# its scores out of step with published 2048 benchmarks (#14).
+FOUR_SPAWN_PROBABILITY = 0.1
+
+# The exponents Tile stores: a 2 is 2 ** 1, a 4 is 2 ** 2.
+TWO = 1
+FOUR = 2
+
 class Tile:
     
     _value = 0
@@ -78,11 +87,10 @@ class Board:
         """
         empty_cells = self.get_empty_cells()
         for x, y in random.sample(empty_cells, max(0, min(n, len(empty_cells)))):
-            p = random.randint(1, 5)
-            if p == 1:
-                tile = Tile(2)
+            if random.random() < FOUR_SPAWN_PROBABILITY:
+                tile = Tile(FOUR)
             else:
-                tile = Tile(1)
+                tile = Tile(TWO)
             self.grid[y][x] = tile
         return n <= len(empty_cells)
 

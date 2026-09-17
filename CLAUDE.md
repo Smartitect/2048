@@ -69,14 +69,13 @@ returns the exponent and `get_tile_value()` returns `2 ** exponent`.
 
 ## Known traps
 
-- **4-tile spawn is 20%**, not the standard 10%. Possibly deliberate; matters for
-  benchmarking. #14.
-
 Fixed, and no longer traps: the `add_random_tiles` hang (#8); the pygame double
 transposition (#13, now plain `grid[y][x]` on both sides); the missing game-over
 detection (#9, #23 — both UIs end the game, and pygame offers R to restart); and the
 `has_merged` guard (#20 — the merge-once rule is enforced by the move loop and pinned
-by `features/symmetry.feature`, so do not re-add the flag without a failing case).
+by `features/symmetry.feature`, so do not re-add the flag without a failing case); and
+the non-standard spawn rate (#14 — now `FOUR_SPAWN_PROBABILITY = 0.1`, so scores are
+comparable with published 2048 benchmarks, and scores recorded before it are not).
 
 ## Workflow
 
