@@ -245,3 +245,23 @@ def step_then_verdict_matches(context):
     assert context.board.can_move() == any(moved.values()), (
         f"can_move() said {context.board.can_move()}, but the moves report {moved}"
     )
+
+
+@then("spawning {count:d} tiles gives 4s about {percent:d}% of the time")
+def step_then_spawn_split(context, count, percent):
+    """
+    Sample the spawn distribution.
+
+    Seeded, so this is deterministic rather than a flaky statistical test, but
+    the tolerance is wide enough that it checks the rate rather than a
+    particular sequence of draws.
+    """
+    fours = 0
+    for _ in range(count):
+        board = Board()
+        board.add_random_tiles(1)
+        values = [cell for row in grid_from_board(board) for cell in row if cell]
+        assert values in ([2], [4]), f"expected one spawned tile, got {values}"
+        fours += values == [4]
+    actual = 100 * fours / count
+    assert abs(actual - percent) < 1.5, f"4s spawned {actual:.2f}% of the time, expected about {percent}%"
