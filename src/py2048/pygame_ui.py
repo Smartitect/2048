@@ -179,7 +179,7 @@ def main():
                     if move is not None:
                         move_result = board.make_move(move)
                         if move_result:
-                            add_tile_result = board.add_random_tiles(1)
+                            board.add_random_tiles(1)
                             move_counter = move_counter + 1
                             game.update_tiles(Game.convert_grid(board.grid))
                             game.draw_tiles()
