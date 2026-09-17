@@ -173,7 +173,7 @@ class ScriptedPlayer:
     def __init__(self):
         self.moves_made = 0
 
-    async def choose(self, board, moves_played=0):
+    async def choose(self, board, moves_played=0, recent_moves=()):
         from py2048.agent import build_state, move_criteria
 
         options = move_criteria(build_state(board))

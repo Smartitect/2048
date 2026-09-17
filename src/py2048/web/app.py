@@ -67,6 +67,10 @@ class GameSession:
         self.board.add_random_tiles(2)
         self.moves = 0
         self.last_move = None
+        # Every direction that changed the board, oldest first. An AI player
+        # is asked one position at a time, so this is the only way it can see
+        # a game going round in circles.
+        self.history = []
         self.decision = None
 
     def state(self):
@@ -107,6 +111,7 @@ class GameSession:
                 self.board.add_random_tiles(1)
                 self.moves = self.moves + 1
                 self.last_move = direction
+                self.history.append(direction)
             self.decision = decision
             state = self.state()
         await self.broadcast(state)
