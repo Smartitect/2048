@@ -312,6 +312,30 @@ class Board:
     def is_empty(self, x, y):
         return self.grid[y][x] is None
 
+    def can_move(self):
+        """Whether any direction would change the board.
+
+        The question a UI needs in order to end the game, and a search needs in
+        order to recognise a terminal node. Never mutates: a caller is asking
+        about the board, not playing on it.
+        """
+        empty_cells = self.get_empty_cells()
+        if len(empty_cells) == 16:
+            # Nothing on the board, so nothing can move.
+            return False
+        if empty_cells:
+            # Tiles and space both exist, so some tile borders a gap to slide into.
+            return True
+        # A full board moves only by merging, which needs equal neighbours.
+        for y in range(4):
+            for x in range(4):
+                value = self.grid[y][x].get_value()
+                if x + 1 < 4 and self.grid[y][x + 1].get_value() == value:
+                    return True
+                if y + 1 < 4 and self.grid[y + 1][x].get_value() == value:
+                    return True
+        return False
+
     def get_empty_cells(self):
         """Return the (x, y) coordinates of every empty cell."""
         return [(x, y) for y in range(4) for x in range(4) if self.grid[y][x] is None]

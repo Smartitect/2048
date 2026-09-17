@@ -216,3 +216,32 @@ def step_then_seed_is_deterministic(context):
     random.seed(context.seed)
     replay.add_random_tiles(context.added_count)
     assert_grids_equal(grid_from_board(replay), grid_from_board(context.board))
+
+
+@then("a move is available")
+def step_then_move_available(context):
+    assert context.board.can_move() is True, "can_move() says the game is over"
+
+
+@then("no moves are available")
+def step_then_no_moves_available(context):
+    assert context.board.can_move() is False, "can_move() says a move is still possible"
+
+
+@then("that verdict matches trying every direction")
+def step_then_verdict_matches(context):
+    """
+    Check can_move() against what the moves actually do.
+
+    Each direction is tried on its own copy of the board, so this compares the
+    verdict with real behaviour rather than with a second implementation of the
+    same rule.
+    """
+    grid = grid_from_board(context.board)
+    moved = {
+        direction: board_from_grid(grid).make_move(direction)
+        for direction in DIRECTIONS
+    }
+    assert context.board.can_move() == any(moved.values()), (
+        f"can_move() said {context.board.can_move()}, but the moves report {moved}"
+    )
