@@ -11,11 +11,27 @@ from pygame.locals import (
     K_LEFT,
     K_RIGHT,
     K_ESCAPE,
+    K_r,
     KEYDOWN,
     QUIT,
 )
 
+# The only keys that move tiles. Keeping the mapping here rather than in a
+# chain of ifs inside the event loop makes it something a spec can check.
+MOVE_KEYS = {
+    K_UP: 'UP',
+    K_DOWN: 'DOWN',
+    K_LEFT: 'LEFT',
+    K_RIGHT: 'RIGHT',
+}
+
+
+def move_for_key(key):
+    """The move a key means, or None if it is not a movement key."""
+    return MOVE_KEYS.get(key)
+
 # Colours
+OVERLAY = pygame.Color(238, 228, 218, 200)
 TEXT_DARK = pygame.Color(119, 110, 100)
 TEXT_LIGHT = pygame.Color(255, 255, 255)
 BACKGROUND = pygame.Color(188, 173, 159)
@@ -123,6 +139,24 @@ class Game:
     def draw_tiles(self):
         for tile in self.all_tiles:
             self.screen.blit(tile.surface, (tile.x_pos, tile.y_pos))
+
+    def draw_game_over(self, score, move_counter):
+        """Dim the board and say so, rather than leaving a dead board live."""
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill(OVERLAY)
+        self.screen.blit(overlay, (0, 0))
+
+        heading = pygame.font.Font(pygame.font.get_default_font(), FONT_SIZE * 2)
+        detail = pygame.font.Font(pygame.font.get_default_font(), FONT_SIZE)
+        lines = [
+            (heading, "GAME OVER", -40),
+            (detail, "Score {} in {} moves".format(score, move_counter), 10),
+            (detail, "R to restart, Esc to quit", 45),
+        ]
+        for font, text, offset in lines:
+            surface = font.render(text, True, TEXT_DARK)
+            rectangle = surface.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + offset))
+            self.screen.blit(surface, rectangle)
     
     @staticmethod
     def convert_grid(grid):
@@ -137,20 +171,31 @@ class Game:
         ]
 
 
+def new_game():
+    """A fresh board with its two starting tiles."""
+    board = Board()
+    board.add_random_tiles(2)
+    return board
+
+
+def render(game, board, move_counter, game_over):
+    game.update_tiles(Game.convert_grid(board.grid))
+    game.draw_tiles()
+    if game_over:
+        game.draw_game_over(board.score, move_counter)
+    pygame.display.flip()
+
+
 def main():
 
     # Initialize pygame
     pygame.init()
     game = Game()
-    board = Board()
-    board.add_random_tiles(2)
-    game.update_tiles(Game.convert_grid(board.grid))
-    game.draw_tiles()
-    pygame.display.flip()
-    
+    board = new_game()
+
     move_counter = 0
-    move = None
-    move_result = False
+    game_over = not board.can_move()
+    render(game, board, move_counter, game_over)
 
     # Variable to keep the main loop running
     running = True
@@ -159,35 +204,31 @@ def main():
     while running:
         # Look at every event in the queue
         for event in pygame.event.get():
+            # Did the user click the window close button? If so, stop the loop.
+            if event.type == QUIT:
+                running = False
+
             # Did the user hit a key?
-            if event.type == KEYDOWN:
+            elif event.type == KEYDOWN:
                 # Was it the Escape key? If so, stop the loop.
                 if event.key == K_ESCAPE:
                     running = False
-                else:
-                    if event.key == K_UP:
-                        move = 'UP'
-                    elif event.key == K_LEFT:
-                        move = 'LEFT'
-                    elif event.key == K_DOWN:
-                        move = 'DOWN'
-                    elif event.key == K_RIGHT:
-                        move = 'RIGHT'
-                    else:
-                        move = None
 
-                    if move is not None:
-                        move_result = board.make_move(move)
-                        if move_result:
-                            board.add_random_tiles(1)
-                            move_counter = move_counter + 1
-                            game.update_tiles(Game.convert_grid(board.grid))
-                            game.draw_tiles()
-                            pygame.display.flip()
+                elif event.key == K_r:
+                    board = new_game()
+                    move_counter = 0
+                    game_over = not board.can_move()
+                    render(game, board, move_counter, game_over)
 
-            # Did the user click the window close button? If so, stop the loop.
-            elif event.type == QUIT:
-                running = False
+                elif not game_over:
+                    # A dead board takes no more moves: without this it would
+                    # keep accepting keys that silently do nothing.
+                    move = move_for_key(event.key)
+                    if move is not None and board.make_move(move):
+                        board.add_random_tiles(1)
+                        move_counter = move_counter + 1
+                        game_over = not board.can_move()
+                        render(game, board, move_counter, game_over)
 
 if __name__ == "__main__":
     main()

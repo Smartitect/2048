@@ -74,12 +74,10 @@ returns the exponent and `get_tile_value()` returns `2 ** exponent`.
 - **`Tile._has_merged` never changes an outcome.** The merge-once rule is already
   enforced by the move loop, so the guard and the `reset_tile_merges()` walk before
   every move are dead weight in the hot path. #20.
-- **The pygame UI ignores game over.** `Board.can_move()` exists and the console UI
-  acts on it; the pygame window still accepts keys on a dead board. #23.
 
 Fixed, and no longer traps: the `add_random_tiles` hang (#8), the pygame double
 transposition (#13, now plain `grid[y][x]` on both sides), and the missing game-over
-detection (#9).
+detection (#9, #23 — both UIs end the game now; pygame offers R to restart).
 
 ## Workflow
 
