@@ -9,7 +9,6 @@ import random
 class Tile:
     
     _value = 0
-    _has_merged = False
 
     def __init__(self, tile_value):
         self._value = tile_value
@@ -22,13 +21,6 @@ class Tile:
 
     def inc_value(self):
         self._value = self._value + 1
-        self._has_merged = True
-
-    def has_merged(self):
-        return self._has_merged
-
-    def reset_merged(self):
-        self._has_merged = False
 
     def get_value(self):
         return self._value
@@ -95,7 +87,11 @@ class Board:
         return n <= len(empty_cells)
 
     def make_move(self, move):
-        self.reset_tile_merges()
+        # A tile produced by a merge must not merge again in the same move.
+        # The move loops already guarantee that: a merge shifts the rest of the
+        # line down immediately and the loop index only moves outward, so the
+        # merged tile is never revisited. features/symmetry.feature pins the
+        # rule down ("A tile that has just merged does not merge again").
         if move == 'UP':
             return self.__go_up()
         if move == 'DOWN':
@@ -146,7 +142,7 @@ class Board:
                 self.grid[y][x] = None
                 moved = True
             else:
-                if (not tile2.has_merged()) and tile2.get_value() == tile1.get_value():
+                if tile2.get_value() == tile1.get_value():
                     self.grid[y-1][x] = tile1
                     self.grid[y][x] = None
                     tile1.inc_value()
@@ -172,7 +168,7 @@ class Board:
                 self.grid[y][x] = None
                 moved = True
             else:
-                if (not tile2.has_merged()) and tile2.get_value() == tile1.get_value():
+                if tile2.get_value() == tile1.get_value():
                     self.grid[y][x-1] = tile1
                     self.grid[y][x] = None
                     tile1.inc_value()
@@ -198,7 +194,7 @@ class Board:
                 self.grid[y][x] = None
                 moved = True
             else:
-                if (not tile2.has_merged()) and tile2.get_value() == tile1.get_value():
+                if tile2.get_value() == tile1.get_value():
                     self.grid[y][x+1] = tile1
                     self.grid[y][x] = None
                     tile1.inc_value()
@@ -224,7 +220,7 @@ class Board:
                 self.grid[y][x] = None
                 moved = True
             else:
-                if (not tile2.has_merged()) and tile2.get_value() == tile1.get_value():
+                if tile2.get_value() == tile1.get_value():
                     self.grid[y+1][x] = tile1
                     self.grid[y][x] = None
                     tile1.inc_value()
@@ -370,11 +366,6 @@ class Board:
         board_metrics = str("Score:{}, Merge count:{}, Max tile:{}, Max tile coords:({},{})".format(self.score, self.merge_count, max_tile_value, max_row_idx + 1, max_tile_idx + 1))
         return board_metrics
 
-    def reset_tile_merges(self):
-        for row in self.grid:
-            for tile in row:
-                tile and tile.reset_merged()
-    
     def get_max_tile(self):
         """Returns the value of the maximum tile on the board, along with its coordinates."""
         max_tile_value = 0
