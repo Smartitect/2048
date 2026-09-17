@@ -13,6 +13,7 @@ syncs first.
 uv sync                             # after pulling a changed pyproject.toml or uv.lock
 uv run py2048                       # console UI
 uv run py2048-pygame                # pygame UI
+uv run py2048-web                   # browser UI on http://127.0.0.1:8000
 uv run behave                       # executable specs
 uv run behave features/movement.feature  # one feature
 pwsh .devcontainer/smoke-test.ps1   # verify the container build
@@ -36,6 +37,9 @@ reason #6 can change the board representation without changing behaviour.
 - `rendering.feature` drives the real pygame UI on SDL's dummy driver and asserts
   where each value lands on screen. A transposed render still looks like a plausible
   board, so orientation is the one thing worth pinning down.
+- `web_api.feature` drives the browser API through FastAPI's `TestClient`, except for
+  the event stream, which runs against a real uvicorn server on a free port — an
+  in-process client cannot tear down an endless stream. `after_scenario` stops it.
 - Randomness is seeded per scenario in `features/environment.py`. Assert a replay
   with the same seed rather than hard-coding spawn coordinates, which would pin the
   specs to the internals of `random.sample`.
@@ -57,11 +61,15 @@ reason #6 can change the board representation without changing behaviour.
 src/py2048/engine.py      Board + Tile. The engine. All game logic.
 src/py2048/console.py     Console UI.     Entry point: py2048
 src/py2048/pygame_ui.py   Pygame UI.      Entry point: py2048-pygame
+src/py2048/web/           Browser UI.     Entry point: py2048-web
 ```
 
-The engine/UI split is clean and worth preserving: both front-ends are independent
-consumers of one `Board`, and neither reaches into the other. A third (browser) UI is
-planned on the same basis — see #15.
+The engine/UI split is clean and worth preserving: all three front-ends are independent
+consumers of one `Board`, and none reaches into another.
+
+The browser UI (#15) keeps the engine authoritative: no game logic in JavaScript. The
+page posts moves and renders what comes back, with state pushed over server-sent events
+at `/api/events`. State crosses the wire as tile **values**, never exponents.
 
 Board state is `grid[y][x]`, indexed row-then-column, with `None` for an empty cell.
 Tiles store the *exponent* (`Tile(1)` renders as 2, `Tile(3)` as 8), so `get_value()`
