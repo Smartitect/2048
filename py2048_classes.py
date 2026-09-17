@@ -78,20 +78,21 @@ class Board:
         return return_string
 
     def add_random_tiles(self, n):
-        if self.is_board_full():
-            return False
-        while n > 0:
-            x = random.randint(0, 3)
-            y = random.randint(0, 3)
-            if self.is_empty(x, y):
-                p = random.randint(1, 5)
-                if p == 1:
-                    tile = Tile(2)
-                else:
-                    tile = Tile(1)
-                self.grid[y][x] = tile
-                n = n - 1
-        return True
+        """Place n tiles on randomly chosen empty cells.
+
+        Places as many as there is room for, and returns whether all n of them
+        fitted. Sampling the empty cells rather than probing random coordinates
+        is what stops a nearly full board from looping forever.
+        """
+        empty_cells = self.get_empty_cells()
+        for x, y in random.sample(empty_cells, max(0, min(n, len(empty_cells)))):
+            p = random.randint(1, 5)
+            if p == 1:
+                tile = Tile(2)
+            else:
+                tile = Tile(1)
+            self.grid[y][x] = tile
+        return n <= len(empty_cells)
 
     def make_move(self, move):
         self.reset_tile_merges()
@@ -310,6 +311,10 @@ class Board:
 
     def is_empty(self, x, y):
         return self.grid[y][x] is None
+
+    def get_empty_cells(self):
+        """Return the (x, y) coordinates of every empty cell."""
+        return [(x, y) for y in range(4) for x in range(4) if self.grid[y][x] is None]
 
     def is_board_full(self):
         for row in self.grid:
