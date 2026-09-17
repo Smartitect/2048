@@ -1,0 +1,21 @@
+[project]
+name = "py2048"
+version = "0.1.0"
+description = "Implementation of the 2048 game in Python, with an engine built for AI search."
+requires-python = ">=3.12"
+dependencies = [
+    "pygame>=2.6.1",
+]
+
+[dependency-groups]
+dev = [
+    "behave>=1.2.6",
+    "ipykernel>=6.29.0",
+]
+
+[tool.uv]
+# uv downloads the interpreter rather than relying on a system Python in the image.
+python-downloads = "automatic"
+# Application repo, not a distributable. Revisit in issue 11, which moves the
+# engine into src/ and registers it as a real package.
+package = false

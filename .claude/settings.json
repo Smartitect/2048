@@ -1,0 +1,50 @@
+{
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "remember@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "python-executable-specifications@endjin-data": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(uv sync)",
+      "Bash(uv sync:*)",
+      "Bash(uv lock)",
+      "Bash(uv lock --check)",
+      "Bash(uv add:*)",
+      "Bash(uv remove:*)",
+      "Bash(uv tree:*)",
+      "Bash(uv --version)",
+      "Bash(uv run python:*)",
+      "Bash(uv run behave:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(gh auth status)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue create:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh issue close:*)",
+      "Bash(gh issue reopen:*)",
+      "Bash(gh label list:*)",
+      "Bash(gh label create:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr edit:*)",
+      "Bash(gh pr comment:*)",
+      "Bash(git status)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(pwsh ./.devcontainer/smoke-test.ps1)"
+    ]
+  }
+}
