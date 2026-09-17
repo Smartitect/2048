@@ -48,5 +48,5 @@ if (Test-Path `$venvActivate) { . `$venvActivate }
 Write-Host ""
 Write-Host "Done. Next steps:"
 Write-Host "  gh auth login                       # authorise GitHub access"
-Write-Host "  uv run python py2048_game.py        # console game"
+Write-Host "  uv run py2048                       # console game"
 Write-Host "  pwsh .devcontainer/smoke-test.ps1   # verify the build"

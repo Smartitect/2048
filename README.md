@@ -13,7 +13,7 @@ It was subsqequently tweaked during the course ousing the code in an assignment 
 - Added a method to export the board state at any point as a simple "list of lists".
 
 ## Overview
-To play the game, you simply need to run the py2048_game.py file.
+To play the game, run `uv run py2048`.
 
 A very basic console based user interface is presented, for example:
 

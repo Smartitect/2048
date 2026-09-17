@@ -1,7 +1,7 @@
 # Import the pygame module
 import pygame
 import random
-from py2048_classes import Board
+from .engine import Board
 
 # Import pygame.locals for easier access to key coordinates
 # Updated to conform to flake8 and black standards
