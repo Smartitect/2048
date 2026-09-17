@@ -21,5 +21,15 @@ if ($python -notlike "*.venv*") {
 }
 
 uv run python -c "import pygame; print('pygame:', pygame.version.ver)"
+
+# The engine must import as an installed package rather than because the
+# working directory happens to be on sys.path, so check it from elsewhere.
+Push-Location ([System.IO.Path]::GetTempPath())
+try {
+    uv run --project $PSScriptRoot/.. python -c "from py2048 import Board; print('py2048: Board imports from', Board.__module__)"
+}
+finally {
+    Pop-Location
+}
 Write-Host ""
 Write-Host "Smoke test passed."

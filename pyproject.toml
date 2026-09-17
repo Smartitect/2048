@@ -7,6 +7,18 @@ dependencies = [
     "pygame>=2.6.1",
 ]
 
+# Launch either front-end by name: `uv run py2048` / `uv run py2048-pygame`.
+[project.scripts]
+py2048 = "py2048.console:main"
+py2048-pygame = "py2048.pygame_ui:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/py2048"]
+
 [dependency-groups]
 dev = [
     "behave>=1.2.6",
@@ -16,6 +28,3 @@ dev = [
 [tool.uv]
 # uv downloads the interpreter rather than relying on a system Python in the image.
 python-downloads = "automatic"
-# Application repo, not a distributable. Revisit in #16, which moves the
-# engine into src/ and registers it as a real package.
-package = false

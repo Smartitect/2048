@@ -11,8 +11,8 @@ syncs first.
 
 ```bash
 uv sync                             # after pulling a changed pyproject.toml or uv.lock
-uv run python py2048_game.py        # console UI
-uv run python py2048_pygame.py      # pygame UI
+uv run py2048                       # console UI
+uv run py2048-pygame                # pygame UI
 uv run behave                       # executable specs (once #10 lands)
 pwsh .devcontainer/smoke-test.ps1   # verify the container build
 ```
@@ -25,16 +25,17 @@ Headless pygame (for tests and CI): `SDL_VIDEODRIVER=dummy`.
   hand-editing `pyproject.toml` without `uv lock`. Both leave the lockfile stale.
 - **`uv.lock` is committed** and there is exactly one lockfile.
 - **`sys.path` manipulation is always a bug.** If an import fails, the package is not
-  registered — fix that instead. See #16.
+  registered — fix that instead. `src/py2048/` is installed by `uv sync`, so
+  `from py2048 import Board` works from any directory; nothing needs a path shim.
 - **uv owns Python.** Do not add a python devcontainer feature; a second interpreter on
   PATH shadows uv's silently.
 
 ## Architecture
 
 ```
-py2048_classes.py   Board + Tile. The engine. All game logic.
-py2048_game.py      Console UI.
-py2048_pygame.py    Pygame UI.
+src/py2048/engine.py      Board + Tile. The engine. All game logic.
+src/py2048/console.py     Console UI.     Entry point: py2048
+src/py2048/pygame_ui.py   Pygame UI.      Entry point: py2048-pygame
 ```
 
 The engine/UI split is clean and worth preserving: both front-ends are independent
@@ -65,7 +66,7 @@ Work is issue-driven and incremental. The backlog lives in GitHub issues
 |---|---|---|
 | 1 — foundation | #7 dev container | — |
 | 2 — correctness | #8 `add_random_tiles` hang, #9 game-over detection | #7 |
-| 3 — safety net | #16 `src/` layout, then #10 behave specs | #7; #10 needs #16 |
+| 3 — safety net | #10 behave specs | #16 |
 | 4 — tidy | #11 README, #12 debug leftovers, #13 pygame coordinates, #14 spawn probability | #13 needs #10 |
 | 5 — features | #15 browser UX, #6 engine performance | #6 needs **#10** |
 
