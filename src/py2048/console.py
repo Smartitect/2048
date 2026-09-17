@@ -32,7 +32,6 @@ def getchar():
 def main():
     board = Board()
     board.add_random_tiles(2)
-    print("main code")
 
     move_counter = 0
     move = None
@@ -67,7 +66,7 @@ def main():
         if move is not None:
             move_result = board.make_move(move)
             if move_result:
-                add_tile_result = board.add_random_tiles(1)
+                board.add_random_tiles(1)
                 move_counter = move_counter + 1
 
 if __name__ == "__main__":
