@@ -54,11 +54,13 @@ FONT_SIZE = 24
 
 class Tile(pygame.sprite.Sprite):
 
-    def __init__(self, row, column, value=None):
+    def __init__(self, x, y, value=None):
+        """A sprite for the board cell at (x, y), following the board's own
+        convention: x is the column, y is the row."""
         super(Tile, self).__init__()
         self.font = pygame.font.Font(pygame.font.get_default_font(), FONT_SIZE)
-        self.x_pos = BORDER_WIDTH + (row * (BORDER_WIDTH + TILE_SIZE))
-        self.y_pos = BORDER_WIDTH + (column * (BORDER_WIDTH + TILE_SIZE))
+        self.x_pos = BORDER_WIDTH + (x * (BORDER_WIDTH + TILE_SIZE))
+        self.y_pos = BORDER_WIDTH + (y * (BORDER_WIDTH + TILE_SIZE))
         self.surface = pygame.Surface((TILE_SIZE, TILE_SIZE))
         self.value = value
         self.update(value)
@@ -102,20 +104,21 @@ class Game:
         self.draw_tiles()
 
     def initialise_tiles(self):
+        """Build the sprite grid as tiles[y][x], matching Board.grid."""
         tiles = []
-        for row in range(0, NUMBER_OF_ROWS):
+        for y in range(0, NUMBER_OF_ROWS):
             row_of_tiles = []
-            for column in range(0, NUMBER_OF_COLUMNS):
-                tile = Tile(row, column)
+            for x in range(0, NUMBER_OF_COLUMNS):
+                tile = Tile(x, y)
                 row_of_tiles.append(tile)
                 self.all_tiles.add(tile)
             tiles.append(row_of_tiles)
         return tiles
 
     def update_tiles(self, tile_values):
-        for row in range(0, NUMBER_OF_ROWS):
-            for column in range(0, NUMBER_OF_COLUMNS):
-                self.tiles[row][column].update(tile_values[row][column])
+        for y in range(0, NUMBER_OF_ROWS):
+            for x in range(0, NUMBER_OF_COLUMNS):
+                self.tiles[y][x].update(tile_values[y][x])
 
     def draw_tiles(self):
         for tile in self.all_tiles:
@@ -123,18 +126,15 @@ class Game:
     
     @staticmethod
     def convert_grid(grid):
+        """Read Board.grid as plain values, cell for cell.
 
-        tile_values = []
-            
-        for row in range(0, NUMBER_OF_ROWS):
-            row_of_tiles = []
-            for column in range(0, NUMBER_OF_COLUMNS):
-                if grid[column][row]:
-                    row_of_tiles.append(grid[column][row].get_value())
-                else:
-                    row_of_tiles.append(None)
-            tile_values.append(row_of_tiles)
-        return tile_values
+        Both sides are grid[y][x] now, so there is nothing to transpose: this
+        only unwraps the Tile objects into the values the sprites display.
+        """
+        return [
+            [None if tile is None else tile.get_value() for tile in row]
+            for row in grid
+        ]
 
 
 def main():

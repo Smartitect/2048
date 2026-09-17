@@ -33,6 +33,9 @@ reason #6 can change the board representation without changing behaviour.
 - Rules that hold in all four directions are written once with the *line notation*:
   `the line facing <direction> is "2 2 2 ."`, where index 0 is the edge the move
   pushes toward and `.` is an empty cell. One scenario, four directions.
+- `rendering.feature` drives the real pygame UI on SDL's dummy driver and asserts
+  where each value lands on screen. A transposed render still looks like a plausible
+  board, so orientation is the one thing worth pinning down.
 - Randomness is seeded per scenario in `features/environment.py`. Assert a replay
   with the same seed rather than hard-coding spawn coordinates, which would pin the
   specs to the internals of `random.sample`.
@@ -66,14 +69,17 @@ returns the exponent and `get_tile_value()` returns `2 ** exponent`.
 
 ## Known traps
 
-- **`Board.add_random_tiles(n)` hangs** when fewer than `n` cells are free. Confirmed,
-  not theoretical. #8.
-- **The pygame UI is double-transposed** — `Tile.__init__` derives screen *x* from
-  `row`, and `convert_grid` reads `grid[column][row]`. The two cancel and the render is
-  genuinely correct, but it reads as a bug. Do not "fix" one half. #13.
-- **No game-over detection exists.** A dead board silently accepts input. #9.
 - **4-tile spawn is 20%**, not the standard 10%. Possibly deliberate; matters for
   benchmarking. #14.
+- **`Tile._has_merged` never changes an outcome.** The merge-once rule is already
+  enforced by the move loop, so the guard and the `reset_tile_merges()` walk before
+  every move are dead weight in the hot path. #20.
+- **The pygame UI ignores game over.** `Board.can_move()` exists and the console UI
+  acts on it; the pygame window still accepts keys on a dead board. #23.
+
+Fixed, and no longer traps: the `add_random_tiles` hang (#8), the pygame double
+transposition (#13, now plain `grid[y][x]` on both sides), and the missing game-over
+detection (#9).
 
 ## Workflow
 
