@@ -16,6 +16,6 @@ dev = [
 [tool.uv]
 # uv downloads the interpreter rather than relying on a system Python in the image.
 python-downloads = "automatic"
-# Application repo, not a distributable. Revisit in issue 11, which moves the
+# Application repo, not a distributable. Revisit in #16, which moves the
 # engine into src/ and registers it as a real package.
 package = false
