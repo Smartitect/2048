@@ -20,7 +20,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from ..agent import JevPlayer
+from ..agent import JevPlayer, MctsPlayer
+from ..agent.decision import decision
 from ..agent.jev import api_key
 from ..agent.runner import AgentRunner
 from ..engine import Board
@@ -45,6 +46,7 @@ class MoveRequest(BaseModel):
 
 class AgentRequest(BaseModel):
     intervalSeconds: float | None = None
+    player: str | None = None
 
 
 class GameSession:
@@ -93,6 +95,11 @@ class GameSession:
             "agent": {
                 "running": self.agent.running if self.agent else False,
                 "intervalSeconds": self.agent.interval if self.agent else None,
+                # Which player has the game, and which ones there are to pick
+                # from. The browser builds its menu from this rather than from
+                # a list of its own that would drift.
+                "player": self.agent.name if self.agent else None,
+                "players": list(self.agent.players) if self.agent else [],
                 "keyConfigured": api_key() is not None,
             },
         }
@@ -144,17 +151,28 @@ class GameSession:
         return state
 
 
-def create_app(player=None):
-    """Build the app. A player can be supplied to run without the live model."""
+def default_players():
+    """The players the browser offers, in the order it offers them.
+
+    Jev first because it is the one that needs a key and therefore the one
+    worth showing the state of; the search plays with no key at all.
+    """
+    return {"jev": JevPlayer(), "mcts": MctsPlayer()}
+
+
+def create_app(players=None):
+    """Build the app.
+
+    `players` can be supplied to run without the live model - the
+    specifications pass a scripted one.
+    """
     app = FastAPI(title="py2048")
     app.state.session = GameSession()
-    app.state.player = player or JevPlayer()
-    app.state.session.agent = AgentRunner(app.state.session, app.state.player)
+    app.state.session.agent = AgentRunner(app.state.session, players or default_players())
 
     @app.on_event("shutdown")
     async def shutdown():
-        await app.state.session.agent.stop()
-        await app.state.player.close()
+        await app.state.session.agent.close()
 
     @app.get("/")
     async def index():
@@ -166,15 +184,7 @@ def create_app(player=None):
 
     @app.post("/api/move")
     async def post_move(request: MoveRequest):
-        human = {
-            "move": request.direction.upper(),
-            "source": "human",
-            "reason": None,
-            "probabilities": None,
-            "confidence": None,
-            "risk": None,
-            "latencyMs": None,
-        }
+        human = decision(request.direction.upper(), "human")
         try:
             state, moved = await app.state.session.apply_move(
                 request.direction.upper(), human
@@ -185,9 +195,13 @@ def create_app(player=None):
 
     @app.post("/api/agent/start")
     async def start_agent(request: AgentRequest | None = None):
-        """Hand the game to the AI player."""
+        """Hand the game to an AI player, by name."""
         interval = request.intervalSeconds if request else None
-        started = await app.state.session.agent.start(interval)
+        player = request.player if request else None
+        try:
+            started = await app.state.session.agent.start(interval, player)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error))
         return {"started": started, "state": await app.state.session.announce()}
 
     @app.post("/api/agent/stop")

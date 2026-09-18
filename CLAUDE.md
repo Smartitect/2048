@@ -82,10 +82,17 @@ The invariants, which are what a change is most likely to break:
 - State crosses the wire — to the browser and to the model — as tile **values**, never
   exponents.
 - **No game logic in JavaScript** (#15). The page posts moves and renders what comes back.
-- The AI player (#31, #33) only ever *chooses*; the engine decides what that does. Only
-  legal moves are offered, and a fallback is never silent.
+- An AI player (#31, #33, #37) only ever *chooses*; the engine decides what that does. Only
+  legal moves are offered, and a fallback is never silent. Every player answers
+  `choose(board, moves_played, recent_moves)` with a direction and a
+  `decision()` — add a player by implementing that, not by special-casing the runner.
 - Facts sent to the model are derived by playing the move on a copy. The random spawn is
   never stated as a consequence of a move — `could_end_the_game` is risk, not prediction.
+- `agent/mcts.py` is a port of the MSc assignment at `Smartitect/Applying-MCTS-To-2048`,
+  and its parameters are that report's measurements. Retuning them is a separate exercise
+  from tidying the code, and should come with numbers. Nothing in it is async or does I/O,
+  which is what lets `MctsPlayer` run it in a thread; keep it that way or it will stall the
+  event stream.
 
 ## Documentation
 

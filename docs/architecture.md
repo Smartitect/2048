@@ -81,13 +81,43 @@ the browser sees the AI's moves over the stream it is already listening to.
 
 ---
 
-## What the AI player is told
+## Two AI players, one interface
 
-`agent/state.py` builds the JSON state; `agent/jev.py` asks [TypeSafe AI's Jev][jev] for a
-`Choice` between the legal directions. Two rules hold: **only legal moves are offered**, so
-an illegal answer is unrepresentable; and **a fallback is never silent** — no key, an API
-error, or a confidence below the threshold falls back to a local policy and says so on
-screen.
+A player is anything with `choose(board, moves_played, recent_moves)` that answers with a
+direction and a decision. There are two, and the browser picks between them:
+
+| Player | Decides by | Needs |
+|---|---|---|
+| `jev` | Asking [TypeSafe AI's Jev][jev] to choose between the legal moves | `TYPESAFE_API_KEY`, or it falls back |
+| `mcts` | Searching the game tree locally, thousands of rollouts a move | Nothing but CPU |
+
+Three rules hold for both. **The engine stays authoritative** — a player only ever names a
+direction, and the engine decides what that does. **Only legal moves are offered or
+returned.** And **a fallback is never silent**: whatever the reason, it is carried on the
+decision and shown on screen.
+
+`AgentRunner` holds the players and which one has the game. It refuses a name it does not
+know rather than falling back to another, because a typo that quietly started a different
+player would look exactly like the one you asked for playing badly.
+
+Every decision has the same shape (`agent/decision.py`), which is why the browser can draw
+one player's answer with the other's widget:
+
+```python
+{"move": "LEFT", "source": "mcts", "reason": None,
+ "detail": "7660 rollouts over 1001 nodes, 16 deep",
+ "probabilities": {"UP": 0.99, ...}, "confidence": 0.99,
+ "risk": 1.71, "latencyMs": 301}
+```
+
+`reason` is for a fallback and reads as one on screen. `detail` is what a player wants to
+say about a decision it did make.
+
+## What Jev is told
+
+`agent/state.py` builds the JSON state; `agent/jev.py` asks Jev for a `Choice` between the
+legal directions. No key, an API error, or a confidence below the threshold falls back to a
+local policy and says so on screen.
 
 The design principle is that the engine does the arithmetic and the model does the judging.
 Every figure below is measured by copying the board and playing the move on the copy, so
@@ -184,6 +214,114 @@ separate them.
 
 ---
 
+## How the search plays
+
+`agent/mcts.py` is a port of [Applying MCTS to 2048][mcts-repo], an MSc assignment that
+tuned these parameters over several hundred games and reached 2048 or better in 72% of its
+final runs. The algorithm and its numbers are that work's; what changed is that it runs on
+this engine, inside the player interface above.
+
+It needs no key and no network. Given half a second it plays about 7,000 random games from
+the current position and plays the move it spent most of that time on.
+
+![A tree with two kinds of turn](diagrams/mcts-tree.png)
+
+### The tree alternates between two kinds of turn
+
+A **MOVE** node is a position the player acts from, and has at most four children. A
+**SPAWN** node is the board after a move, waiting for the random tile, and has one child
+per empty cell per tile value — up to thirty.
+
+Giving the spawn a layer of its own is the expensive decision in the design, and the
+deliberate one. The alternative is to sample one tile and let the whole branch below it
+assume that drop happened, which bakes a lucky 4 into everything underneath.
+
+Traversal follows a spawn child at the rate the game actually drops it — nine times in ten
+for a 2 — rather than by UCB1. Without that the search spends its time in the branches
+where a 4 appeared, because those score better.
+
+### The four phases, as implemented
+
+| Phase | Where |
+|---|---|
+| Select | `_descend` walks down by UCB1 from the root |
+| Expand | `Node.expand` builds every child, the first time a node is revisited |
+| Roll out | `Node.rollout` plays 50 random games, each capped at 12 moves |
+| Back up | `Node.backpropagate` adds the totals to every ancestor |
+
+Reward is the **score at the end of a rollout**, not the points the rollout scored. A
+node's rollouts start from the score the game has already reached, so a move that merges
+carries its own points into every rollout below it. The part common to all siblings cancels
+when they are compared; what is left is credit for merging.
+
+### The settings, and where they came from
+
+| Setting | Default | Why |
+|---|---|---|
+| `thinking_time` | 0.5s | The report found the elbow of the curve at about 0.25s and settled on 0.5. The single most effective thing to raise. |
+| `exploration` | 20 | The C in UCB1. Large because exploitation is a raw 2048 score, not a win rate in [0, 1]. |
+| `rollout_depth` | 12 | Beyond about four the report found little gain for the time. |
+| `rollouts_per_node` | 50 | The report put the useful range at 50–100. |
+| `reward` | `score` | The merge count was explored on the theory that scoring makes the search greedy; the score won. |
+| `reset_reward_on_rollout` | `False` | Carries the banked score into each rollout — see above. |
+| `sample_spawn` | `True` | Follow the spawn the game would actually drop. |
+
+The exploration constant is the honest loose end. The report is candid that it never found
+a principled value, and scaling it with the board is the obvious thing still to try.
+
+### What it reports
+
+`probabilities` are visit shares across the root's children, and the move played is the
+most visited one — not the best UCB1, which carries an exploration bonus that belongs in
+the traversal rather than in the answer.
+
+`confidence` is the winning move's share of the search, which is **not** the same quantity
+as Jev's confidence and is routinely 0.9 or higher. A search that has settled is not a
+search that is calibrated. `detail` carries the rollout, node and depth counts, which are
+the numbers worth watching.
+
+`risk` is worked out locally from the room left on the board, so that the browser's risk
+line means roughly the same thing whichever player is on.
+
+### It runs in a thread
+
+The search is CPU-bound and takes about as long as it is given. On the event loop it would
+stall the event stream every single move, so `MctsPlayer.choose` hands it to
+`asyncio.to_thread`. Nothing in `mcts.py` is async or touches I/O, which is what makes that
+safe.
+
+### What changed in the port
+
+Four fixes, none of them cosmetic:
+
+- **A terminal node no longer ends the search.** The original aborted the whole traversal
+  when it met a dead position anywhere in the tree and reported "no move", which ended
+  games that were not over. A terminal node is a branch with no future, so it is scored
+  where it stands and left to be out-competed.
+- **The spawn probability follows the engine.** Traversal was hard-coded to 80/20, from the
+  older engine that bundled with it. The engine spawns a 4 one time in ten, and the report
+  itself describes 90/10.
+- **The engine copy is gone.** The player uses `py2048.Board` like every other consumer, so
+  the specifications cover the rules it searches.
+- **pandas is gone**, along with the global node counter. pandas was pulled in to call
+  `describe()` on a handful of numbers.
+
+Weighted random rollout moves were dropped: the setting was off in the final configuration
+and the report presents no results for it. It is a few lines to restore if it is wanted.
+
+`flat_search` is kept. The assignment called it "level 1 simulation" and used it to tune
+rollout depth and count in isolation from the tree, and it is a reasonable fast player in
+its own right.
+
+### How well it plays
+
+Two games at a tenth of the tuned thinking time (0.1s, 20 rollouts, depth 8) reached 2048
+with scores of 27,332 and 27,168 over about 1,400 moves each. That is in line with the
+report's 31,127 average for games that reached 2048, which is the result the port was
+checked against.
+
+---
+
 ## Where this is pinned down
 
 `features/` is the safety net for everything that changes the engine, and the reason the
@@ -198,14 +336,18 @@ board representation can be optimised without changing behaviour.
 | `rendering.feature` | That the pygame UI draws the board the right way round |
 | `pygame_controls.feature` | Keys, restart, quit |
 | `web_api.feature` | The endpoints and the event stream |
-| `ai_player.feature` | The state we send, legal-moves-only, and visible fallbacks |
+| `ai_player.feature` | The state we send Jev, legal-moves-only, and visible fallbacks |
+| `mcts_player.feature` | That the search stays legal, leaves the board alone and respects its clock |
 
 Scenarios speak in tile values, and a board is four rows with no header row — behave reads
 the first row as headings and `grid_from_table` puts it back. Rules that hold in all four
 directions are written once with the line notation, and randomness is seeded per scenario
 so a replay can be asserted instead of a hard-coded spawn coordinate.
 
-No specification calls the live model.
+No specification calls the live model, and every scenario that runs the search runs it with
+a fraction of its normal time. How well a player plays is a question for a benchmark, not
+for a specification: a stronger search would pass every scenario in `mcts_player.feature`,
+and so would a weaker one.
 
 ---
 
@@ -233,3 +375,4 @@ The browser UI and the pygame UI use the same palette, so the screenshots and th
 agree.
 
 [jev]: https://docs.typesafe.ai/introduction
+[mcts-repo]: https://github.com/Smartitect/Applying-MCTS-To-2048

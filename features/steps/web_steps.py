@@ -204,7 +204,7 @@ def step_given_scripted_agent(context):
     had stopped on its own. `after_scenario` exits it.
     """
     context.player = ScriptedPlayer()
-    context.client = TestClient(create_app(player=context.player))
+    context.client = TestClient(create_app(players={"scripted": context.player}))
     context.client.__enter__()
     context.entered_client = context.client
     context.response = None
@@ -224,6 +224,33 @@ def step_when_agent_started(context):
         "/api/agent/start", json={"intervalSeconds": 0.05}
     )
     assert context.response.status_code == 200, context.response.text
+
+
+@when("the AI player {name} is started")
+def step_when_named_agent_started(context, name):
+    context.response = context.client.post(
+        "/api/agent/start", json={"intervalSeconds": 0.05, "player": name}
+    )
+
+
+@then("the web game offers the players {names}")
+def step_then_players_offered(context, names):
+    expected = [n.strip() for n in names.split(",")]
+    actual = web_state(context)["agent"]["players"]
+    assert actual == expected, f"offers {actual}, expected {expected}"
+
+
+@then("the web state reports {name} has the game")
+def step_then_player_selected(context, name):
+    actual = web_state(context)["agent"]["player"]
+    assert actual == name, f"{actual} has the game, expected {name}"
+
+
+@then("the web game refuses it")
+def step_then_refused(context):
+    assert context.response.status_code == 422, (
+        f"got {context.response.status_code}, expected 422"
+    )
 
 
 @when("the AI player is stopped")
