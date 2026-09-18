@@ -16,13 +16,14 @@ Two rules hold throughout:
 """
 
 import os
-import random
 import time
 
 from typesafe_sdk import AsyncTypeSafeClient, Choice, RetryPolicy, Score, TypeSafeError
 
-from .decision import decision
-from .state import DIRECTIONS, build_state, move_criteria
+from ..board import DIRECTIONS
+from ..player import decision
+from ..rules_player import TOP_RIGHT, preferred_move
+from .state import build_state, move_criteria
 
 MODEL = "jev-latest"
 
@@ -46,9 +47,10 @@ RISK_LEVELS = [
     "Nearly full, one bad move from being stuck",
 ]
 
-# The local policy's order of preference: keep the largest tile in one corner by
-# favouring two directions and only breaking that when neither is available.
-FALLBACK_ORDER = ("LEFT", "DOWN", "UP", "RIGHT")
+# When Jev cannot be asked or cannot decide, the rules player decides instead -
+# the same corner policy, with the same name and the same scenarios, rather
+# than a second copy of it buried here.
+FALLBACK_ORDER = TOP_RIGHT
 
 
 def api_key():
@@ -59,10 +61,7 @@ def api_key():
 def fallback_move(state):
     """A local policy, used when the model cannot be asked or cannot decide."""
     options = state["available_moves"]
-    for direction in FALLBACK_ORDER:
-        if direction in options:
-            return direction
-    return random.choice(list(options)) if options else None
+    return preferred_move(options, FALLBACK_ORDER)
 
 
 class JevPlayer:

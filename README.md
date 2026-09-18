@@ -58,7 +58,7 @@ Score:372, Merge count:46, Max tile:32, Max tile coords:(2,1)
 ## Letting an AI play
 
 The browser UI can hand the game to an AI player and let you watch. Pick one from the menu
-under the board and press play. There are two.
+under the board and press play. There are four.
 
 **Jev** sends the board to [TypeSafe AI's Jev][jev] as JSON, along with what each move
 would do — what it scores, how much room it leaves, how many directions remain legal
@@ -78,8 +78,19 @@ that time on. It is a port of [an MSc assignment][mcts-repo] that reached the 20
 72% of its final games; [how it works and what was fixed on the way in][mcts-docs] is in
 the architecture notes.
 
-Either way the page shows a probability for every direction and how sure the player was, so
-you can watch *why* it moved.
+**Corner rules** plays the first legal direction on a fixed list — UP, then RIGHT, then
+DOWN, then LEFT — so tiles pile into the top-right corner and it only breaks that when the
+engine gives it no choice. It is the oldest advice in 2048, and it is what Jev falls back
+to when it cannot be asked.
+
+**Random** picks a legal move and nothing more. It is the floor the others are measured
+against, and the smallest thing that meets the player contract.
+
+Whichever is playing, the page shows how sure it was and why it moved.
+
+The four share almost nothing: a player is anything that answers
+`choose(board, moves_played, recent_moves)` with a direction and a decision, so
+[adding a fifth][players-docs] is a module of its own and one line in the register.
 
 ## Architecture
 
@@ -94,7 +105,7 @@ src/py2048/console.py     Console UI.    Entry point: py2048
 src/py2048/pygame_ui.py   Pygame UI.     Entry point: py2048-pygame
 src/py2048/web/           Browser UI.    Entry point: py2048-web
 src/py2048/agent/         AI players.    Board state in, one direction out
-                          jev.py asks a model; mcts.py searches locally
+                          jev/ mcts/ rules_player.py random_player.py
 ```
 
 **[docs/architecture.md](docs/architecture.md)** has the whole picture: the diagrams, the
@@ -161,5 +172,6 @@ worth knowing before changing anything.
 [jev]: https://docs.typesafe.ai/introduction
 [state-docs]: docs/architecture.md#what-jev-is-told
 [mcts-docs]: docs/architecture.md#how-the-search-plays
+[players-docs]: docs/architecture.md#four-ai-players-one-interface
 [mcts-repo]: https://github.com/Smartitect/Applying-MCTS-To-2048
 [GitHub issues]: https://github.com/Smartitect/2048/issues

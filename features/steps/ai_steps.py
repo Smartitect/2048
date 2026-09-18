@@ -14,7 +14,7 @@ from typesafe_sdk import TypeSafeAPIConnectionError
 
 from py2048.agent import build_state, move_criteria
 from py2048.agent.jev import JevPlayer
-from py2048.agent.state import copy_board
+from py2048.agent.board import copy_board
 
 from board_steps import assert_grids_equal, grid_from_table, grid_from_board
 

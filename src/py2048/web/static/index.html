@@ -102,6 +102,8 @@
   .badge.fallback { background: var(--warn); }
   .badge.human { background: var(--link); }
   .badge.mcts { background: var(--brand-deep); }
+  .badge.rules { background: var(--ink-muted); }
+  .badge.random { background: var(--ink-soft); }
   .bar-row { display: grid; grid-template-columns: 54px 1fr 44px; gap: 8px; align-items: center;
              font-size: 12px; margin-bottom: 4px; }
   .bar { background: var(--rule); border-radius: 3px; height: 14px; overflow: hidden; }
@@ -189,7 +191,9 @@
   // up as the server spells it.
   const PLAYERS = {
     jev: {label: "Jev (TypeSafe AI)", verb: "Let Jev play", stop: "Stop Jev"},
-    mcts: {label: "Monte Carlo Tree Search", verb: "Let the search play", stop: "Stop the search"}
+    mcts: {label: "Monte Carlo Tree Search", verb: "Let the search play", stop: "Stop the search"},
+    rules: {label: "Corner rules (up and right)", verb: "Let the rules play", stop: "Stop the rules"},
+    random: {label: "Random", verb: "Let it play at random", stop: "Stop"}
   };
 
   const KEY_MOVES = {

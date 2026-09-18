@@ -120,7 +120,7 @@ Feature: Driving the game from a browser
 
   Scenario: The browser is told which players it can choose between
     Given a running web game
-    Then the web game offers the players jev, mcts
+    Then the web game offers the players jev, mcts, rules, random
 
   Scenario: The game can be handed to a player by name
     Given a running web game driven by a scripted player

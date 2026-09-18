@@ -81,27 +81,47 @@ the browser sees the AI's moves over the stream it is already listening to.
 
 ---
 
-## Two AI players, one interface
+## Four AI players, one interface
 
 A player is anything with `choose(board, moves_played, recent_moves)` that answers with a
-direction and a decision. There are two, and the browser picks between them:
+direction and a decision, plus a `close()`. There is no base class to inherit. There are
+four, and the browser picks between them:
 
 | Player | Decides by | Needs |
 |---|---|---|
-| `jev` | Asking [TypeSafe AI's Jev][jev] to choose between the legal moves | `TYPESAFE_API_KEY`, or it falls back |
+| `jev` | Asking [TypeSafe AI's Jev][jev] to choose between the legal moves | `TYPESAFE_API_KEY`, or it falls back to `rules` |
 | `mcts` | Searching the game tree locally, thousands of rollouts a move | Nothing but CPU |
+| `rules` | Pushing into the top-right corner: UP, then RIGHT, then whatever is left | Nothing |
+| `random` | Picking uniformly from the legal moves | Nothing |
 
-Three rules hold for both. **The engine stays authoritative** — a player only ever names a
-direction, and the engine decides what that does. **Only legal moves are offered or
+They are deliberately separate. Each lives in its own module, and between them they share
+the contract and the board primitives and nothing else:
+
+```
+agent/player.py          what a player is: choose(), close(), decision()
+agent/board.py           legal moves, copies — the primitives any player needs
+agent/jev/               player.py asks the model; state.py builds what it is told
+agent/mcts/              player.py wears the contract; search.py is the algorithm
+agent/rules_player.py    the corner policy
+agent/random_player.py   the floor everything else is measured against
+agent/runner.py          the loop, and which player has the game
+```
+
+**Adding a fifth** is a module of your own and one line in `default_players()`. Nothing
+else knows the names: the API, the runner and the browser menu all read the register.
+
+Three rules hold for all of them. **The engine stays authoritative** — a player only ever
+names a direction, and the engine decides what that does. **Only legal moves are offered or
 returned.** And **a fallback is never silent**: whatever the reason, it is carried on the
-decision and shown on screen.
+decision and shown on screen. `features/players.feature` runs all four against the same
+boards to check exactly that, which is the test a fifth player would have to pass.
 
 `AgentRunner` holds the players and which one has the game. It refuses a name it does not
 know rather than falling back to another, because a typo that quietly started a different
 player would look exactly like the one you asked for playing badly.
 
-Every decision has the same shape (`agent/decision.py`), which is why the browser can draw
-one player's answer with the other's widget:
+Every decision has the same shape (`agent/player.py`), which is why the browser can draw
+one player's answer with another's widget:
 
 ```python
 {"move": "LEFT", "source": "mcts", "reason": None,
@@ -111,7 +131,48 @@ one player's answer with the other's widget:
 ```
 
 `reason` is for a fallback and reads as one on screen. `detail` is what a player wants to
-say about a decision it did make.
+say about a decision it did make — how hard the search looked, which rule was followed.
+
+A player that has no distribution to report leaves `probabilities` out rather than
+inventing one: the rules player always answers the same way, so a bar chart of its
+"confidence" would say nothing. The random player does report one, because a uniform choice
+over the legal moves is genuinely its distribution.
+
+## The two simple players
+
+`rules` plays the first direction on a fixed list that the engine will accept — UP, then
+RIGHT, then DOWN, then LEFT — so tiles pile into the top-right corner and the list is only
+broken when there is no choice. It is the oldest advice in 2048 and it plays a respectable
+game, because the two directions that hold a corner also keep the big tiles adjacent, which
+is what keeps merges lining up. It fails the way every fixed policy fails: once the
+preferred pair is exhausted it has to break its own structure and has no way to choose
+which break hurts least. The corner is a parameter — `BOTTOM_LEFT` is the mirror image.
+
+This is also **what Jev falls back to** when there is no key, the API errors, or the model
+cannot separate the options. The fallback used to be a tuple buried in the client; now it
+has a name, a corner and scenarios of its own.
+
+`random` picks uniformly from the legal moves. It is worth having as the floor every other
+player is measured against — a search that cannot beat random is not searching — and as the
+smallest thing that meets the contract, which makes it the one to copy when adding a fifth
+player.
+
+### The ladder they make
+
+| Player | Median score | Best tile | Games |
+|---|---|---|---|
+| `random` | 580 | 128 | 5 |
+| `rules` | 2,808 | 256 | 5 |
+| `mcts` | ~27,000 | 2048 | 2 |
+
+Small samples on fixed seeds, and the search ran at a tenth of its tuned thinking time, so
+read these as an ordering rather than as measurements. The ordering is the point: each step
+up costs something — a rule, then a great deal of CPU — and the gaps say what it bought.
+`jev` is not in the table because benchmarking it means spending real API calls on a
+thousand-move game.
+
+The assignment's own numbers, at the tuned settings over 25 games, were 31,127 average for
+games that reached 2048, with 72% reaching it.
 
 ## What Jev is told
 
@@ -336,8 +397,10 @@ board representation can be optimised without changing behaviour.
 | `rendering.feature` | That the pygame UI draws the board the right way round |
 | `pygame_controls.feature` | Keys, restart, quit |
 | `web_api.feature` | The endpoints and the event stream |
+| `players.feature` | The contract all four meet, run against each of them in turn |
 | `ai_player.feature` | The state we send Jev, legal-moves-only, and visible fallbacks |
 | `mcts_player.feature` | That the search stays legal, leaves the board alone and respects its clock |
+| `simple_players.feature` | The corner rules, and that random stays legal and spreads out |
 
 Scenarios speak in tile values, and a board is four rows with no header row — behave reads
 the first row as headings and `grid_from_table` puts it back. Rules that hold in all four
