@@ -20,8 +20,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from ..agent import JevPlayer, MctsPlayer
-from ..agent.decision import decision
+from ..agent import decision, default_players
 from ..agent.jev import api_key
 from ..agent.runner import AgentRunner
 from ..engine import Board
@@ -149,15 +148,6 @@ class GameSession:
             state = self.state()
         await self.broadcast(state)
         return state
-
-
-def default_players():
-    """The players the browser offers, in the order it offers them.
-
-    Jev first because it is the one that needs a key and therefore the one
-    worth showing the state of; the search plays with no key at all.
-    """
-    return {"jev": JevPlayer(), "mcts": MctsPlayer()}
 
 
 def create_app(players=None):

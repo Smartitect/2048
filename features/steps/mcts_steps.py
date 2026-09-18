@@ -23,7 +23,7 @@ from py2048.agent.mcts import (
     flat_search,
     search,
 )
-from py2048.agent.state import available_directions
+from py2048.agent.board import available_directions
 from py2048.engine import FOUR, FOUR_SPAWN_PROBABILITY
 
 # Enough of a search to exercise every path, little enough that the suite still

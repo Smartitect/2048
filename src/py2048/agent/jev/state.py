@@ -1,5 +1,5 @@
 """
-Turning a Board into the JSON state an AI player is asked about.
+Turning a Board into the JSON state Jev is asked about.
 
 The engine already knows what each move would do, so it says so rather than
 leaving the model to simulate 2048 in its head: the code does the arithmetic,
@@ -18,11 +18,15 @@ Three kinds of fact cross the wire, and the distinction is worth keeping:
   spawn will happen.
 
 Nothing in this module talks to a model, which is what makes it easy to check.
+
+The judgements here - how tidy the board is, what a move risks - are Jev's
+payload and live with Jev. The primitives underneath them, which any player
+needs, are in `agent/board.py`. If a second player ever wants monotonicity,
+that is the day it moves down there.
 """
 
-from ..engine import Board, Tile, FOUR, TWO
-
-DIRECTIONS = ("UP", "DOWN", "LEFT", "RIGHT")
+from ...engine import Tile, FOUR, TWO
+from ..board import DIRECTIONS, available_directions, copy_board, empty_count, values
 
 CORNERS = ((0, 0), (3, 0), (0, 3), (3, 3))
 
@@ -32,27 +36,6 @@ RECENT_MOVES = 6
 
 # Every pair of neighbouring cells, counted once per axis: 12 across, 12 down.
 ADJACENT_PAIRS = 24
-
-
-def copy_board(board):
-    """A board that can be played on without disturbing the original."""
-    return Board(
-        initial_state=board.export_state(),
-        initial_score=board.score,
-        initial_merge_count=board.merge_count,
-    )
-
-
-def values(board):
-    """The grid as tile values, the way a player sees it."""
-    return [
-        [None if tile is None else tile.get_tile_value() for tile in row]
-        for row in board.grid
-    ]
-
-
-def empty_count(board):
-    return len(board.get_empty_cells())
 
 
 def largest_tile(board):
@@ -128,13 +111,6 @@ def monotonicity(board):
             near, far = (y, y + 1) if anchor_row == 0 else (3 - y, 2 - y)
             ordered += grid[near][x] >= grid[far][x]
     return round(ordered / ADJACENT_PAIRS, 2)
-
-
-def available_directions(board):
-    """Every direction that would change this board."""
-    return [
-        direction for direction in DIRECTIONS if copy_board(board).make_move(direction)
-    ]
 
 
 def could_end_the_game(board):

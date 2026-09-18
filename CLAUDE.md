@@ -82,13 +82,19 @@ The invariants, which are what a change is most likely to break:
 - State crosses the wire — to the browser and to the model — as tile **values**, never
   exponents.
 - **No game logic in JavaScript** (#15). The page posts moves and renders what comes back.
-- An AI player (#31, #33, #37) only ever *chooses*; the engine decides what that does. Only
-  legal moves are offered, and a fallback is never silent. Every player answers
-  `choose(board, moves_played, recent_moves)` with a direction and a
-  `decision()` — add a player by implementing that, not by special-casing the runner.
+- An AI player (#31, #33, #37, #39) only ever *chooses*; the engine decides what that does.
+  Only legal moves are offered, and a fallback is never silent. Every player answers
+  `choose(board, moves_played, recent_moves)` with a direction and a `decision()`, and has
+  a `close()`. **Adding a player is a module in `agent/` and one line in
+  `default_players()`** — never a special case in the runner, the API or the page, all of
+  which read the register. `features/players.feature` runs the contract against every
+  registered player; a new one has to pass it.
+- The players are deliberately separate: they share `agent/player.py` (the contract) and
+  `agent/board.py` (legal moves, copies) and nothing else. Judging a position belongs to
+  the agent that judges it — `jev/state.py` is Jev's payload, not a shared library.
 - Facts sent to the model are derived by playing the move on a copy. The random spawn is
   never stated as a consequence of a move — `could_end_the_game` is risk, not prediction.
-- `agent/mcts.py` is a port of the MSc assignment at `Smartitect/Applying-MCTS-To-2048`,
+- `agent/mcts/search.py` is a port of the MSc assignment at `Smartitect/Applying-MCTS-To-2048`,
   and its parameters are that report's measurements. Retuning them is a separate exercise
   from tidying the code, and should come with numbers. Nothing in it is async or does I/O,
   which is what lets `MctsPlayer` run it in a thread; keep it that way or it will stall the

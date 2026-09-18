@@ -1,5 +1,5 @@
 """
-Monte Carlo Tree Search, as a py2048 player.
+Monte Carlo Tree Search over a 2048 board.
 
 Adapted from https://github.com/Smartitect/Applying-MCTS-To-2048, an MSc
 assignment (CS801, Strathclyde, 2020) that tuned these parameters over several
@@ -23,18 +23,17 @@ part that is common to all siblings cancels when they are compared; what is
 left is the credit for merging.
 
 Nothing here is async and nothing here does I/O: `search` is a plain function
-that thinks for as long as it is given. `MctsPlayer` runs it off the event loop.
+that thinks for as long as it is given. That is what lets `player.py` run it in
+a worker thread, and it is worth keeping true.
 """
 
-import asyncio
 import math
 import random
 import time
 from dataclasses import dataclass, replace
 
-from ..engine import FOUR, FOUR_SPAWN_PROBABILITY, TWO, Board
-from .decision import crowding_risk, decision
-from .state import DIRECTIONS, available_directions
+from ...engine import FOUR, FOUR_SPAWN_PROBABILITY, TWO, Board
+from ..board import DIRECTIONS
 
 # Whose turn it is to act from a node.
 MOVE = "MOVE"
@@ -400,68 +399,7 @@ def flat_search(board, settings=None, rng=None, rollouts=200):
     )
 
 
-class MctsPlayer:
-    """Picks a move by searching, and says how hard it looked.
-
-    The same interface as `JevPlayer`, so the runner and the browser cannot
-    tell them apart. The search is CPU-bound and takes about as long as it is
-    given, so it runs in a worker thread: on the event loop it would stall the
-    event stream every single move.
-    """
-
-    def __init__(self, settings=None, strategy="tree"):
-        self.settings = settings or Settings()
-        self.strategy = strategy
-
-    async def close(self):
-        """Nothing to close. Here because every player is closed on shutdown."""
-
-    async def choose(self, board, moves_played=0, recent_moves=()):
-        """Pick the next move, and say who picked it.
-
-        `moves_played` and `recent_moves` are part of the interface and are not
-        used: the search reads the position, and the position is all a search
-        needs.
-        """
-        legal = available_directions(board)
-        if not legal:
-            return None, decision(None, "fallback", reason="no legal moves")
-        if len(legal) == 1:
-            # Nothing to decide, and searching would spend half a second
-            # confirming the only move on offer.
-            return legal[0], decision(
-                legal[0], "fallback", reason="only one legal move",
-                risk=crowding_risk(board),
-            )
-
-        started = time.perf_counter()
-        result = await asyncio.to_thread(self._search, board)
-        latency_ms = round((time.perf_counter() - started) * 1000)
-
-        if result.move is None:
-            # The board was legal a moment ago, so this means it changed under
-            # the search rather than that there is nothing to play.
-            return legal[0], decision(
-                legal[0], "fallback", reason="the search found no move",
-                latency_ms=latency_ms, risk=crowding_risk(board),
-            )
-
-        return result.move, decision(
-            result.move, "mcts",
-            detail=result.summary(),
-            probabilities=result.shares,
-            confidence=round(result.confidence, 3),
-            risk=crowding_risk(board),
-            latency_ms=latency_ms,
-        )
-
-    def _search(self, board):
-        if self.strategy == "flat":
-            return flat_search(board, self.settings)
-        return search(board, self.settings)
-
-
 __all__ = [
-    "MctsPlayer", "Settings", "SearchResult", "Node",
+    "Settings", "SearchResult", "Node",
     "search", "flat_search", "MOVE", "SPAWN", "SCORE", "MERGES",
 ]

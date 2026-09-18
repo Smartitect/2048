@@ -13,7 +13,7 @@ lives here rather than in the web layer.
 
 import asyncio
 
-from .decision import decision
+from .player import decision
 
 # Slow enough to watch. A decision takes anywhere from a few milliseconds to
 # about the search's thinking time, so this pause is for the human on top of
