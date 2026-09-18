@@ -5,11 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>py2048</title>
 <style>
+  /* endjin's web palette, read from the custom properties on endjin.com.
+     The lime is the one accent; everything else is the brand's grey ramp. */
   :root {
-    --background: #faf8ef;
-    --board: #bcada0;
-    --empty: #cec0b3;
-    --text-dark: #776e64;
+    --paper: #fafafa;
+    --panel: #ffffff;
+    --board: #e2e6eb;
+    --empty: #f2f4f8;
+    --ink: #181a1d;
+    --ink-muted: #636871;
+    --ink-soft: #858891;
+    --rule: #e2e6eb;
+    --brand: #78bf20;
+    --brand-light: #8fd332;
+    --brand-deep: #60991a;
+    --link: #0095ff;
+    --warn: #9a5416;
+    --danger: #b3261e;
     --text-light: #ffffff;
     --gap: 10px;
   }
@@ -17,22 +29,29 @@
   body {
     margin: 0;
     padding: 24px 16px 40px;
-    background: var(--background);
-    color: var(--text-dark);
-    font: 16px/1.4 "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.4 Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
-  h1 { font-size: 40px; margin: 0 0 4px; letter-spacing: -1px; }
-  .subtitle { margin: 0 0 20px; font-size: 14px; opacity: 0.8; }
+  h1 { font-size: 40px; margin: 0; letter-spacing: -1px; font-weight: 700; }
+  .masthead {
+    display: flex; align-items: center; gap: 18px;
+    margin-bottom: 4px;
+  }
+  .brand { display: block; line-height: 0; }
+  .brand svg { height: 24px; width: auto; fill: var(--ink-muted); transition: fill 0.15s; }
+  .brand:hover svg, .brand:focus-visible svg { fill: var(--brand-deep); }
+  .subtitle { margin: 0 0 20px; font-size: 14px; color: var(--ink-muted); }
   .metrics { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
   .metric {
-    background: var(--board); color: var(--text-light);
+    background: var(--ink); color: var(--text-light);
     border-radius: 6px; padding: 8px 16px; min-width: 88px; text-align: center;
   }
   .metric span { display: block; }
-  .metric .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.85; }
+  .metric .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-soft); }
   .metric .value { font-size: 22px; font-weight: 700; }
   .board-wrapper { position: relative; }
   .board {
@@ -41,13 +60,13 @@
   }
   .cell {
     width: 100px; height: 100px; border-radius: 4px;
-    background: var(--empty); color: var(--text-dark);
+    background: var(--empty); color: var(--ink);
     display: flex; align-items: center; justify-content: center;
     font-size: 30px; font-weight: 700;
   }
   .overlay {
     position: absolute; inset: 0; border-radius: 8px;
-    background: rgba(238, 228, 218, 0.78);
+    background: rgba(250, 250, 250, 0.88);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; text-align: center;
   }
@@ -56,14 +75,19 @@
   .controls { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
   button {
     font: inherit; font-weight: 700; cursor: pointer;
-    background: #8e7a66; color: var(--text-light);
+    background: var(--brand); color: var(--ink);
     border: 0; border-radius: 6px; padding: 10px 18px;
   }
-  button:hover { background: #7d6a58; }
-  .hint { margin-top: 18px; font-size: 13px; opacity: 0.75; text-align: center; }
+  button:hover { background: var(--brand-light); }
+  select {
+    font: inherit; padding: 8px 10px; border-radius: 6px;
+    border: 1px solid var(--rule); background: var(--panel); color: var(--ink);
+  }
+  .hint { margin-top: 18px; font-size: 13px; color: var(--ink-muted); text-align: center; }
   .decision {
     margin-top: 18px; width: 460px; max-width: 100%;
-    background: #ede4da; border-radius: 8px; padding: 14px 16px;
+    background: var(--panel); border: 1px solid var(--rule);
+    border-radius: 8px; padding: 14px 16px;
   }
   .decision[hidden] { display: none; }
   .decision-head {
@@ -73,18 +97,20 @@
   .decision-head strong { font-size: 15px; }
   .badge {
     font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-    padding: 3px 8px; border-radius: 4px; background: #8e7a66; color: #fff;
+    padding: 3px 8px; border-radius: 4px; background: var(--ink); color: #fff;
   }
-  .badge.fallback { background: #b04a3a; }
-  .badge.human { background: #6f8f6a; }
+  .badge.fallback { background: var(--warn); }
+  .badge.human { background: var(--link); }
   .bar-row { display: grid; grid-template-columns: 54px 1fr 44px; gap: 8px; align-items: center;
              font-size: 12px; margin-bottom: 4px; }
-  .bar { background: #d8ccc0; border-radius: 3px; height: 14px; overflow: hidden; }
-  .bar span { display: block; height: 100%; background: #8e7a66; }
-  .bar-row.picked span { background: #f2b179; }
-  .reason { margin: 8px 0 0; font-size: 12px; color: #8a4433; }
-  .status { margin-top: 8px; font-size: 13px; min-height: 18px; }
-  .status.offline { color: #b04a3a; font-weight: 700; }
+  .bar { background: var(--rule); border-radius: 3px; height: 14px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--ink-muted); }
+  /* Scoped to the bar: a bare `span` here would paint the row's label and
+     percentage as well. */
+  .bar-row.picked .bar span { background: var(--brand); }
+  .reason { margin: 8px 0 0; font-size: 12px; color: var(--warn); }
+  .status { margin-top: 8px; font-size: 13px; min-height: 18px; color: var(--ink-muted); }
+  .status.offline { color: var(--danger); font-weight: 700; }
   @media (max-width: 480px) {
     .board { grid-template-columns: repeat(4, 70px); }
     .cell { width: 70px; height: 70px; font-size: 22px; }
@@ -92,7 +118,10 @@
 </style>
 </head>
 <body>
-  <h1>2048</h1>
+  <header class="masthead">
+    <h1>2048</h1>
+    <a class="brand" href="https://endjin.com" target="_blank" rel="noopener" title="endjin"><svg viewBox="0 0 186 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M160.65,24A15.91,15.91,0,0,1,173.5,19c6.59.36,11.45,4.39,11.89,10.5.61,8.35.48,16.74.61,25.12,0,1.84-.63,2.33-2.57,2.35H182c-2.85,0-3.19-.33-3.19-3,0-5.32.05-10.63,0-15.95a57.66,57.66,0,0,0-.46-6.68c-.66-4.92-4.88-7.06-9.63-6.22a14.59,14.59,0,0,0-6.4,3,2.47,2.47,0,0,0-1.11,2.22c0,7.88,0,15.76,0,23.64,0,2.65-.43,3.05-3.17,3.06-4,0-4,0-4-3.91V22.74c0-2.39.5-2.92,3-3.13,3.35-.29,3.64,0,3.68,3.2C160.65,23.08,160.65,23.35,160.65,24Z"/><path d="M143,2c3.16-.07,5.22,2.2,5,4.53a4.68,4.68,0,0,1-5.05,4.68c-2.94-.05-5-1.9-4.94-4.63S139.93,2.07,143,2Z"/><path d="M146.75,38V54.1c0,2.43-.5,2.89-3.09,2.9-4.46,0-4.46,0-4.46-4.19V22.69c0-2.46.54-3,3.1-3.11.26,0,.51,0,.76-.06,3.21-.44,3.69-.05,3.69,3Z"/><path d="M127.39,2c2.85.13,4.86,2.12,4.58,4.59a4.45,4.45,0,0,1-4.64,4.55A4.57,4.57,0,1,1,127.39,2Z"/><path d="M130.77,38.27c0,5.56.17,11.13-.05,16.7a21.66,21.66,0,0,1-6.46,15.22c-1.05,1-2.07,2.07-3.16,3s-2,1-3.2-.09c-2.51-2.43-2.53-2.76-.1-5.31a19.32,19.32,0,0,0,5.46-9.61,21,21,0,0,0,.43-3.88c0-10.62,0-21.26,0-31.89,0-2.38.52-2.91,3-3l.57,0c3.24-.42,3.58-.12,3.58,3.15V38.27Z"/><path d="M113.92,1.4A1.38,1.38,0,0,0,112.31,0c-1.3.07-2.6.18-3.89.28a1.64,1.64,0,0,0-1.67,1.6,13.13,13.13,0,0,0-.08,1.54c0,5.46,0,10.92,0,16.49A27.57,27.57,0,0,0,94,19.66c-6,1.31-10.47,4.54-12.93,10a24.06,24.06,0,0,0-.73,17.72A15.69,15.69,0,0,0,99.15,57.52a15.44,15.44,0,0,0,8-4.71v2c0,2.1.55,2.58,2.69,2.36l1-.07c2.68-.19,3.12-.64,3.12-3.27V2.8C114,2.34,114,1.87,113.92,1.4Zm-9.36,48.2c-3.57,2.71-9.26,3.21-12.84.95A11.16,11.16,0,0,1,86.89,43a19.2,19.2,0,0,1,.25-9.81c1.66-5.37,5.43-8.15,10.73-8.46a42.57,42.57,0,0,1,7.41.73c1.06.13,1.45.73,1.42,1.83-.08,3.22,0,6.44,0,9.67,0,2.75-.15,5.52.06,8.26A4.59,4.59,0,0,1,104.56,49.6Z"/><path d="M47.73,23.94A15.67,15.67,0,0,1,60.3,19c6.8.3,11.35,4.23,12.2,10.71A111.7,111.7,0,0,1,73,42.55c.07,4,0,7.93,0,11.89,0,2.13-.46,2.54-2.6,2.55H68.63c-2.35,0-2.89-.53-2.9-2.79,0-6.9,0-13.8-.09-20.7-.07-3.49-1.06-6.62-4.91-8a9.52,9.52,0,0,0-6.3-.08A18.92,18.92,0,0,0,52,26.3c-2.59,1.19-4,2.77-3.88,6,.33,7.21.11,14.45.11,21.67,0,2.62-.42,3-3.06,3C41,57,41,57,41,53q0-15.16,0-30.35c0-2.12.4-2.63,2.54-2.95a13.09,13.09,0,0,1,2.73-.06c1.1.07,1.36.91,1.45,1.77S47.73,22.84,47.73,23.94Z"/><path d="M33,52c-.06-1.5-.75-2-2.23-1.53A30.58,30.58,0,0,1,19.24,52C11.4,51.47,7,46.09,7.07,38.66H29.86c2.33,0,3-.62,3-2.94a34.06,34.06,0,0,0-.53-5.13A13.75,13.75,0,0,0,26,21c-2.81-1.79-5.92-2.07-9.18-2A16.9,16.9,0,0,0,1.52,29.41,24.68,24.68,0,0,0,.4,42.5c1,6.34,4.26,11.2,10.54,13.73,6.44,2.6,12.85,2.15,19.25-.15C32.56,55.23,33.08,54.51,33,52ZM18.12,24.08a8.49,8.49,0,0,1,7.47,9.47H7.33C7.47,28.64,11.08,23.53,18.12,24.08Z"/></svg></a>
+  </header>
   <p class="subtitle">The Python engine is playing; this page is only watching.</p>
 
   <div class="metrics">
@@ -137,15 +166,17 @@
   <p class="status" id="status"></p>
 
 <script>
-  // Tile colours, keyed by value. Anything above 2048 keeps the top colour.
+  // Tile colours, keyed by value: endjin's grey ramp climbing into the brand
+  // lime, then into ink once a tile is worth shouting about. 2048 is the
+  // milestone, so it inverts. Anything past 8192 goes to the brand blue.
   const TILE_STYLES = {
-    2: ["#eee5da", "#776e64"], 4: ["#eee1c7", "#776e64"],
-    8: ["#f2b179", "#ffffff"], 16: ["#f59563", "#ffffff"],
-    32: ["#f57c5f", "#ffffff"], 64: ["#f45c3d", "#ffffff"],
-    128: ["#edd073", "#ffffff"], 256: ["#edcc62", "#ffffff"],
-    512: ["#edc850", "#ffffff"], 1024: ["#edc53f", "#ffffff"],
-    2048: ["#edc22e", "#ffffff"], 4096: ["#238c51", "#ffffff"],
-    8192: ["#1982cd", "#ffffff"]
+    2: ["#f2f4f8", "#636871"], 4: ["#e2e6eb", "#636871"],
+    8: ["#d3ecb4", "#3a5f0e"], 16: ["#bfe28e", "#3a5f0e"],
+    32: ["#a8d867", "#2c4a0a"], 64: ["#94d742", "#1f3707"],
+    128: ["#78bf20", "#ffffff"], 256: ["#6aab1c", "#ffffff"],
+    512: ["#60991a", "#ffffff"], 1024: ["#4d7d13", "#ffffff"],
+    2048: ["#3a5f0e", "#94d742"], 4096: ["#26292e", "#94d742"],
+    8192: ["#181a1d", "#78bf20"]
   };
 
   const KEY_MOVES = {
@@ -171,7 +202,7 @@
     // The grid arrives as grid[y][x], the same way round the engine holds it.
     state.grid.flat().forEach((value, index) => {
       const cell = cells[index];
-      const [fill, text] = TILE_STYLES[value] || ["#125b92", "#ffffff"];
+      const [fill, text] = TILE_STYLES[value] || ["#0095ff", "#ffffff"];
       cell.textContent = value === null ? "" : value;
       cell.style.background = value === null ? "var(--empty)" : fill;
       cell.style.color = text;

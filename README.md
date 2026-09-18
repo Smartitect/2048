@@ -1,7 +1,8 @@
 # 2048
 
 Implementation of the popular 2048 game in Python, with an engine built to sit under an
-AI search such as Monte Carlo Tree Search.
+AI search such as Monte Carlo Tree Search — and a browser UI that lets you watch a model
+play it.
 
 ![The pygame user interface](images/pygame-ui.png)
 
@@ -54,9 +55,32 @@ Score:372, Merge count:46, Max tile:32, Max tile coords:(2,1)
 -------------------------------------
 ```
 
+## Letting an AI play
+
+The browser UI can hand the game to an AI player and let you watch. Press **Let Jev play**.
+
+The board goes to [TypeSafe AI's Jev][jev] as JSON, along with what each move would do —
+what it scores, how much room it leaves, how many directions remain legal afterwards, what
+it does to the order of the tiles, and whether an unlucky spawn could end the game — all
+played out on a copy by the engine, so the model judges facts rather than imagining them.
+Only the legal directions are offered.
+
+Each decision comes back with a probability for every direction and a confidence, and the
+page shows them next to the board, so you can watch *why* it moved. A decision takes around
+250ms.
+
+Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Without a key
+it still plays, using a local fallback policy that is clearly marked on screen — as are API
+errors and decisions the model was too unsure to make.
+
+[What exactly it is told, and what is deliberately left out][state-docs], is in the
+architecture notes.
+
 ## Architecture
 
-![Architecture overview](images/Core%20Game%20Architecture.png)
+One engine, four consumers: a console UI, a pygame UI, a browser UI and an AI player, all
+independent users of one `Board` that holds every rule. That split is what lets the engine
+be driven by a search algorithm instead of a keyboard.
 
 ```
 src/py2048/engine.py      Board + Tile. The engine: all game logic.
@@ -66,46 +90,9 @@ src/py2048/web/           Browser UI.    Entry point: py2048-web
 src/py2048/agent/         AI players.    Board state in, one direction out
 ```
 
-All three front-ends are independent consumers of one `Board`, and none reaches into
-another. That split is what lets the engine be driven by a search algorithm instead of a
-keyboard, and it is worth preserving — the browser UI in particular holds no game logic
-at all, which is what makes it a good window onto a search playing the game.
-
-Two conventions are worth knowing before reading the code:
-
-- Board state is `grid[y][x]` — row first, then column — with `None` for an empty cell.
-- Tiles store the **exponent**, so `Tile(1)` renders as 2 and `Tile(3)` as 8.
-  `get_value()` returns the exponent, `get_tile_value()` returns `2 ** exponent`.
-
-The engine's public surface is the package itself:
-
-```python
-from py2048 import Board
-
-board = Board()
-board.add_random_tiles(2)
-board.make_move("LEFT")     # True if the board changed
-board.can_move()            # False once the game is over
-board.export_state()        # the grid as a list of lists, for rollouts
-```
-
-## Letting an AI play
-
-The browser UI can hand the game to an AI player and let you watch. Press **Let Jev play**.
-
-The board goes to [TypeSafe AI's Jev](https://docs.typesafe.ai/introduction) as JSON, along
-with what each move would do — merges, points, cells freed, whether the largest tile stays
-in a corner — all played out on a copy by the engine, so the model judges facts rather than
-imagining them. The available moves are offered as a choice between UP, DOWN, LEFT and
-RIGHT, and only the legal ones are offered.
-
-Each decision comes back with a probability for every direction and a confidence, and the
-page shows them next to the board, so you can watch *why* it moved. A decision takes around
-250ms.
-
-Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Without a key
-it still plays, using a local fallback policy that is clearly marked on screen — as are API
-errors and decisions the model was too unsure to make.
+**[docs/architecture.md](docs/architecture.md)** has the whole picture: the diagrams, the
+browser round trip, the JSON the AI player is sent, and the conventions worth knowing
+before reading the code.
 
 ## Specifications
 
@@ -137,8 +124,9 @@ game looks:
 ```
 
 The suite covers merge rules in all four directions, no-op detection, scoring, tile
-spawning and game over, and it renders the pygame UI headlessly to check that the board is
-drawn the right way round.
+spawning and game over; it renders the pygame UI headlessly to check that the board is
+drawn the right way round; and it drives the browser API and the AI player without ever
+calling the live model.
 
 ## Background
 
@@ -163,4 +151,6 @@ worth knowing before changing anything.
 
 [uv]: https://docs.astral.sh/uv/
 [behave]: https://behave.readthedocs.io/
+[jev]: https://docs.typesafe.ai/introduction
+[state-docs]: docs/architecture.md#what-the-ai-player-is-told
 [GitHub issues]: https://github.com/Smartitect/2048/issues

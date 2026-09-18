@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>One engine, four consumers</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #fafafa;
+      --color-ink:    #181a1d;
+      --color-muted:  #636871;
+      --color-accent: #60991a;
+      --font-sans:  'Inter', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:  "Consolas", "Menlo", "Inconsolata", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Monaco", monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--color-muted); margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; letter-spacing: -0.02em; line-height: 1.15;
+      color: var(--color-ink); margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · py2048</p>
+    <h1>One engine, four consumers</h1>
+
+    <svg viewBox="0 0 1140 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="arch-overview-title arch-overview-desc">
+      <title id="arch-overview-title">One engine, four consumers</title>
+      <desc id="arch-overview-desc">The py2048 Board engine sits at the centre holding all game logic. Three user interfaces — console, pygame and browser — drive it, and a fourth consumer, the AI player, reads the board state and asks TypeSafe AI's Jev for a direction to play.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#636871"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#60991a"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0095ff"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#fafafa"/>
+
+      <!-- zones (drawn first) -->
+      <rect x="56" y="88" width="228" height="312" rx="8" fill="rgba(24,26,29,0.02)" stroke="rgba(24,26,29,0.10)" stroke-width="0.8"/>
+      <rect x="72" y="92" width="86" height="12" rx="2" fill="#fafafa"/>
+      <text x="115" y="101" fill="rgba(24,26,29,0.45)" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">FRONT ENDS</text>
+
+      <rect x="666" y="184" width="428" height="136" rx="8" fill="rgba(24,26,29,0.02)" stroke="rgba(24,26,29,0.10)" stroke-width="0.8"/>
+      <rect x="682" y="188" width="78" height="12" rx="2" fill="#fafafa"/>
+      <text x="721" y="197" fill="rgba(24,26,29,0.45)" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.14em">AI PLAYER</text>
+
+      <!-- arrows (drawn before nodes) -->
+      <line x1="260" y1="152" x2="380" y2="152" stroke="#636871" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="260" y1="248" x2="380" y2="248" stroke="#636871" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="260" y1="344" x2="380" y2="344" stroke="#636871" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <line x1="590" y1="232" x2="690" y2="232" stroke="#60991a" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="622" y="212" width="36" height="12" rx="2" fill="#fafafa"/>
+      <text x="640" y="221" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">STATE</text>
+
+      <line x1="690" y1="264" x2="590" y2="264" stroke="#636871" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="612" y="244" width="56" height="12" rx="2" fill="#fafafa"/>
+      <text x="640" y="253" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">DIRECTION</text>
+
+      <line x1="870" y1="232" x2="930" y2="232" stroke="#0095ff" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+      <rect x="882" y="212" width="36" height="12" rx="2" fill="#fafafa"/>
+      <text x="900" y="221" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">HTTPS</text>
+
+      <line x1="930" y1="264" x2="870" y2="264" stroke="#0095ff" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-link)"/>
+      <rect x="880" y="244" width="40" height="12" rx="2" fill="#fafafa"/>
+      <text x="900" y="253" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">CHOICE</text>
+
+      <!-- nodes -->
+      <rect x="80" y="120" width="180" height="64" rx="6" fill="#fafafa"/>
+      <rect x="80" y="120" width="180" height="64" rx="6" fill="#ffffff" stroke="#181a1d" stroke-width="1"/>
+      <rect x="88" y="126" width="22" height="12" rx="2" fill="transparent" stroke="rgba(24,26,29,0.40)" stroke-width="0.8"/>
+      <text x="99" y="135" fill="rgba(24,26,29,0.80)" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">UI</text>
+      <text x="170" y="156" fill="#181a1d" font-size="12" font-weight="600" font-family="Inter, sans-serif" text-anchor="middle">Console UI</text>
+      <text x="170" y="172" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">py2048</text>
+
+      <rect x="80" y="216" width="180" height="64" rx="6" fill="#fafafa"/>
+      <rect x="80" y="216" width="180" height="64" rx="6" fill="#ffffff" stroke="#181a1d" stroke-width="1"/>
+      <rect x="88" y="222" width="22" height="12" rx="2" fill="transparent" stroke="rgba(24,26,29,0.40)" stroke-width="0.8"/>
+      <text x="99" y="231" fill="rgba(24,26,29,0.80)" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">UI</text>
+      <text x="170" y="252" fill="#181a1d" font-size="12" font-weight="600" font-family="Inter, sans-serif" text-anchor="middle">Pygame UI</text>
+      <text x="170" y="268" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">py2048-pygame</text>
+
+      <rect x="80" y="312" width="180" height="64" rx="6" fill="#fafafa"/>
+      <rect x="80" y="312" width="180" height="64" rx="6" fill="#ffffff" stroke="#181a1d" stroke-width="1"/>
+      <rect x="88" y="318" width="22" height="12" rx="2" fill="transparent" stroke="rgba(24,26,29,0.40)" stroke-width="0.8"/>
+      <text x="99" y="327" fill="rgba(24,26,29,0.80)" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">UI</text>
+      <text x="170" y="348" fill="#181a1d" font-size="12" font-weight="600" font-family="Inter, sans-serif" text-anchor="middle">Browser UI</text>
+      <text x="170" y="364" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">py2048-web · FastAPI</text>
+
+      <!-- focal: the engine -->
+      <rect x="380" y="120" width="210" height="256" rx="8" fill="#fafafa"/>
+      <rect x="380" y="120" width="210" height="256" rx="8" fill="rgba(120,191,32,0.14)" stroke="#60991a" stroke-width="1.2"/>
+      <rect x="392" y="132" width="44" height="12" rx="2" fill="transparent" stroke="rgba(96,153,26,0.55)" stroke-width="0.8"/>
+      <text x="414" y="141" fill="#4d7d13" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">ENGINE</text>
+      <text x="485" y="196" fill="#181a1d" font-size="14" font-weight="600" font-family="Inter, sans-serif" text-anchor="middle">Board + Tile</text>
+      <text x="485" y="214" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">engine.py</text>
+      <line x1="404" y1="236" x2="566" y2="236" stroke="rgba(24,26,29,0.12)" stroke-width="0.8"/>
+      <text x="485" y="258" fill="#181a1d" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">make_move · can_move</text>
+      <text x="485" y="276" fill="#181a1d" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">add_random_tiles</text>
+      <text x="485" y="294" fill="#181a1d" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">export_state</text>
+      <line x1="404" y1="312" x2="566" y2="312" stroke="rgba(24,26,29,0.12)" stroke-width="0.8"/>
+      <text x="485" y="334" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">grid[y][x] · None = empty</text>
+      <text x="485" y="352" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">Tile holds the exponent</text>
+
+      <rect x="690" y="216" width="180" height="64" rx="6" fill="#fafafa"/>
+      <rect x="690" y="216" width="180" height="64" rx="6" fill="#ffffff" stroke="#181a1d" stroke-width="1"/>
+      <rect x="698" y="222" width="38" height="12" rx="2" fill="transparent" stroke="rgba(24,26,29,0.40)" stroke-width="0.8"/>
+      <text x="717" y="231" fill="rgba(24,26,29,0.80)" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">AGENT</text>
+      <text x="780" y="252" fill="#181a1d" font-size="12" font-weight="600" font-family="Inter, sans-serif" text-anchor="middle">AI player</text>
+      <text x="780" y="268" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">state.py · jev.py</text>
+
+      <rect x="930" y="216" width="140" height="64" rx="6" fill="#fafafa"/>
+      <rect x="930" y="216" width="140" height="64" rx="6" fill="rgba(24,26,29,0.03)" stroke="rgba(24,26,29,0.30)" stroke-width="1"/>
+      <rect x="938" y="222" width="50" height="12" rx="2" fill="transparent" stroke="rgba(24,26,29,0.30)" stroke-width="0.8"/>
+      <text x="963" y="231" fill="rgba(24,26,29,0.65)" font-size="7" font-family="Consolas, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">EXTERNAL</text>
+      <text x="1000" y="252" fill="#181a1d" font-size="12" font-weight="600" font-family="Inter, sans-serif" text-anchor="middle">Jev</text>
+      <text x="1000" y="268" fill="#636871" font-size="9" font-family="Consolas, Menlo, monospace" text-anchor="middle">TypeSafe AI</text>
+
+      <!-- legend -->
+      <line x1="56" y1="432" x2="1094" y2="432" stroke="rgba(24,26,29,0.10)" stroke-width="0.8"/>
+      <text x="56" y="452" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace" letter-spacing="0.14em">LEGEND</text>
+      <rect x="150" y="444" width="10" height="10" rx="2" fill="rgba(120,191,32,0.14)" stroke="#60991a" stroke-width="1"/>
+      <text x="168" y="452" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace">ENGINE · ALL GAME LOGIC</text>
+      <rect x="360" y="444" width="10" height="10" rx="2" fill="#ffffff" stroke="#181a1d" stroke-width="1"/>
+      <text x="378" y="452" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace">CONSUMER OF THE BOARD</text>
+      <rect x="570" y="444" width="10" height="10" rx="2" fill="rgba(24,26,29,0.03)" stroke="rgba(24,26,29,0.30)" stroke-width="1"/>
+      <text x="588" y="452" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace">EXTERNAL SERVICE</text>
+      <line x1="744" y1="449" x2="772" y2="449" stroke="#0095ff" stroke-width="1.2"/>
+      <text x="780" y="452" fill="#636871" font-size="8" font-family="Consolas, Menlo, monospace">HTTPS CALL</text>
+
+      <!-- endjin wordmark, from endjin.com -->
+      <g transform="translate(1046,438) scale(0.26)" fill="#636871" aria-hidden="true"><path d="M160.65,24A15.91,15.91,0,0,1,173.5,19c6.59.36,11.45,4.39,11.89,10.5.61,8.35.48,16.74.61,25.12,0,1.84-.63,2.33-2.57,2.35H182c-2.85,0-3.19-.33-3.19-3,0-5.32.05-10.63,0-15.95a57.66,57.66,0,0,0-.46-6.68c-.66-4.92-4.88-7.06-9.63-6.22a14.59,14.59,0,0,0-6.4,3,2.47,2.47,0,0,0-1.11,2.22c0,7.88,0,15.76,0,23.64,0,2.65-.43,3.05-3.17,3.06-4,0-4,0-4-3.91V22.74c0-2.39.5-2.92,3-3.13,3.35-.29,3.64,0,3.68,3.2C160.65,23.08,160.65,23.35,160.65,24Z"/><path d="M143,2c3.16-.07,5.22,2.2,5,4.53a4.68,4.68,0,0,1-5.05,4.68c-2.94-.05-5-1.9-4.94-4.63S139.93,2.07,143,2Z"/><path d="M146.75,38V54.1c0,2.43-.5,2.89-3.09,2.9-4.46,0-4.46,0-4.46-4.19V22.69c0-2.46.54-3,3.1-3.11.26,0,.51,0,.76-.06,3.21-.44,3.69-.05,3.69,3Z"/><path d="M127.39,2c2.85.13,4.86,2.12,4.58,4.59a4.45,4.45,0,0,1-4.64,4.55A4.57,4.57,0,1,1,127.39,2Z"/><path d="M130.77,38.27c0,5.56.17,11.13-.05,16.7a21.66,21.66,0,0,1-6.46,15.22c-1.05,1-2.07,2.07-3.16,3s-2,1-3.2-.09c-2.51-2.43-2.53-2.76-.1-5.31a19.32,19.32,0,0,0,5.46-9.61,21,21,0,0,0,.43-3.88c0-10.62,0-21.26,0-31.89,0-2.38.52-2.91,3-3l.57,0c3.24-.42,3.58-.12,3.58,3.15V38.27Z"/><path d="M113.92,1.4A1.38,1.38,0,0,0,112.31,0c-1.3.07-2.6.18-3.89.28a1.64,1.64,0,0,0-1.67,1.6,13.13,13.13,0,0,0-.08,1.54c0,5.46,0,10.92,0,16.49A27.57,27.57,0,0,0,94,19.66c-6,1.31-10.47,4.54-12.93,10a24.06,24.06,0,0,0-.73,17.72A15.69,15.69,0,0,0,99.15,57.52a15.44,15.44,0,0,0,8-4.71v2c0,2.1.55,2.58,2.69,2.36l1-.07c2.68-.19,3.12-.64,3.12-3.27V2.8C114,2.34,114,1.87,113.92,1.4Zm-9.36,48.2c-3.57,2.71-9.26,3.21-12.84.95A11.16,11.16,0,0,1,86.89,43a19.2,19.2,0,0,1,.25-9.81c1.66-5.37,5.43-8.15,10.73-8.46a42.57,42.57,0,0,1,7.41.73c1.06.13,1.45.73,1.42,1.83-.08,3.22,0,6.44,0,9.67,0,2.75-.15,5.52.06,8.26A4.59,4.59,0,0,1,104.56,49.6Z"/><path d="M47.73,23.94A15.67,15.67,0,0,1,60.3,19c6.8.3,11.35,4.23,12.2,10.71A111.7,111.7,0,0,1,73,42.55c.07,4,0,7.93,0,11.89,0,2.13-.46,2.54-2.6,2.55H68.63c-2.35,0-2.89-.53-2.9-2.79,0-6.9,0-13.8-.09-20.7-.07-3.49-1.06-6.62-4.91-8a9.52,9.52,0,0,0-6.3-.08A18.92,18.92,0,0,0,52,26.3c-2.59,1.19-4,2.77-3.88,6,.33,7.21.11,14.45.11,21.67,0,2.62-.42,3-3.06,3C41,57,41,57,41,53q0-15.16,0-30.35c0-2.12.4-2.63,2.54-2.95a13.09,13.09,0,0,1,2.73-.06c1.1.07,1.36.91,1.45,1.77S47.73,22.84,47.73,23.94Z"/><path d="M33,52c-.06-1.5-.75-2-2.23-1.53A30.58,30.58,0,0,1,19.24,52C11.4,51.47,7,46.09,7.07,38.66H29.86c2.33,0,3-.62,3-2.94a34.06,34.06,0,0,0-.53-5.13A13.75,13.75,0,0,0,26,21c-2.81-1.79-5.92-2.07-9.18-2A16.9,16.9,0,0,0,1.52,29.41,24.68,24.68,0,0,0,.4,42.5c1,6.34,4.26,11.2,10.54,13.73,6.44,2.6,12.85,2.15,19.25-.15C32.56,55.23,33.08,54.51,33,52ZM18.12,24.08a8.49,8.49,0,0,1,7.47,9.47H7.33C7.47,28.64,11.08,23.53,18.12,24.08Z"/></g>
+    </svg>
+  </div>
+</body>
+</html>

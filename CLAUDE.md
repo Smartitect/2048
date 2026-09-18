@@ -60,6 +60,10 @@ reason #6 can change the board representation without changing behaviour.
 
 ## Architecture
 
+**[docs/architecture.md](docs/architecture.md) is the full picture** — the diagrams, the
+browser round trip, the JSON the AI player is sent, and where each is pinned down. Keep it
+current when you change any of them; do not restate it here or in the README.
+
 ```
 src/py2048/engine.py      Board + Tile. The engine. All game logic.
 src/py2048/console.py     Console UI.     Entry point: py2048
@@ -68,23 +72,31 @@ src/py2048/web/           Browser UI.     Entry point: py2048-web
 src/py2048/agent/         AI players. state.py builds the JSON, jev.py asks the model.
 ```
 
-The engine/UI split is clean and worth preserving: all three front-ends are independent
-consumers of one `Board`, and none reaches into another.
+The invariants, which are what a change is most likely to break:
 
-The browser UI (#15) keeps the engine authoritative: no game logic in JavaScript. The
-page posts moves and renders what comes back, with state pushed over server-sent events
-at `/api/events`. State crosses the wire as tile **values**, never exponents.
+- The engine/UI split is clean: all four front-ends are independent consumers of one
+  `Board`, and none reaches into another.
+- Board state is `grid[y][x]`, row-then-column, `None` for empty. Tiles store the
+  *exponent* (`Tile(1)` renders as 2), so `get_value()` returns the exponent and
+  `get_tile_value()` returns `2 ** exponent`.
+- State crosses the wire — to the browser and to the model — as tile **values**, never
+  exponents.
+- **No game logic in JavaScript** (#15). The page posts moves and renders what comes back.
+- The AI player (#31, #33) only ever *chooses*; the engine decides what that does. Only
+  legal moves are offered, and a fallback is never silent.
+- Facts sent to the model are derived by playing the move on a copy. The random spawn is
+  never stated as a consequence of a move — `could_end_the_game` is risk, not prediction.
 
-The AI player (#31) is a fourth consumer of the same `Board`. `agent/state.py` builds the
-JSON state — including what each move *would* do, played out on a copy — and
-`agent/jev.py` asks TypeSafe AI's Jev for a `Choice` between the legal directions. Two
-rules hold: only legal moves are offered, so an illegal answer is unrepresentable; and a
-fallback is never silent — no key, an API error or low confidence falls back to a local
-policy and says so in the UI.
+## Documentation
 
-Board state is `grid[y][x]`, indexed row-then-column, with `None` for an empty cell.
-Tiles store the *exponent* (`Tile(1)` renders as 2, `Tile(3)` as 8), so `get_value()`
-returns the exponent and `get_tile_value()` returns `2 ** exponent`.
+- `README.md` is the front door: what it is, how to run it, the controls, and links onward.
+- `docs/architecture.md` is the design. One place, not three.
+- `docs/diagrams/*.html` are the diagram **sources**, generated with the Diagram Design
+  skill; the `.png` beside each is the export used in the docs. Edit the HTML and
+  re-export; do not hand-edit a PNG.
+- The palette is endjin's, saved as the `endjin` Diagram Design profile and bound by the
+  `.diagram-design` marker at the repository root. The browser and pygame UIs use the same
+  palette, so screenshots and diagrams agree.
 
 ## Secrets
 
