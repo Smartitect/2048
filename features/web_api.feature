@@ -119,8 +119,17 @@ Feature: Driving the game from a browser
     And the web state reports the game is over
 
   Scenario: The browser is told which players it can choose between
-    Given a running web game
+    Given a key is configured
+    And a running web game
     Then the web game offers the players jev, mcts, rules, random
+    And the web state reports a key is configured
+
+  Scenario: With no key there is no Jev to choose
+    Given no key is configured
+    And a running web game
+    Then the web game offers the players mcts, rules, random
+    And the web state reports no key is configured
+    And the web state reports mcts has the game
 
   Scenario: The game can be handed to a player by name
     Given a running web game driven by a scripted player

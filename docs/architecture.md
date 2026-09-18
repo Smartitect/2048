@@ -89,7 +89,7 @@ four, and the browser picks between them:
 
 | Player | Decides by | Needs |
 |---|---|---|
-| `jev` | Asking [TypeSafe AI's Jev][jev] to choose between the legal moves | `TYPESAFE_API_KEY`, or it falls back to `rules` |
+| `jev` | Asking [TypeSafe AI's Jev][jev] to choose between the legal moves | `TYPESAFE_API_KEY` — without one it is not offered at all |
 | `mcts` | Searching the game tree locally, thousands of rollouts a move | Nothing but CPU |
 | `rules` | Pushing into the top-right corner: UP, then RIGHT, then whatever is left | Nothing |
 | `random` | Picking uniformly from the legal moves | Nothing |
@@ -117,6 +117,16 @@ meets, which is why that one is not called `player.py` as well.
 **Adding a fifth** is a module of your own — or a folder, if it needs more than one — and
 one line in `default_players()`. Nothing else knows the names: the API, the runner and the
 browser menu all read the register.
+
+**Jev is only in the register when there is a key for it.** Without one it would sit in the
+menu and play as the rules player, which is a worse answer than not being there: you would
+be watching a fallback and be told it was a model. The other three need nothing but CPU, so
+the menu is never empty, and `mcts` leads when Jev is absent. The page says why the option
+is missing rather than being quietly one shorter.
+
+The key is read once, when the register is built, so a key added to `.env` after the server
+started needs a restart to appear. `api_key()` itself is read per call, so a key that goes
+away mid-game makes the running player fall back and say so rather than fail.
 
 Three rules hold for all of them. **The engine stays authoritative** — a player only ever
 names a direction, and the engine decides what that does. **Only legal moves are offered or
