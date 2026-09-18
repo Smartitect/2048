@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from ..agent import decision, default_players
-from ..agent.jev import api_key
+from ..agent.jev import api_key, transcript
 from ..agent.runner import AgentRunner
 from ..engine import Board
 
@@ -239,9 +239,22 @@ app = create_app()
 
 def run():
     """Entry point for `uv run py2048-web`."""
+    import copy
+
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # What goes to Jev and what comes back, printed as JSON. Off in anything
+    # that has not asked for it, because an unconfigured logger drops the
+    # record before it is built.
+    transcript.log_to_stdout()
+
+    # Standard out belongs to the transcript, so `py2048-web | jq` works.
+    # uvicorn's access log would otherwise interleave single lines of plain
+    # text with it; on standard error it is still on screen.
+    log_config = copy.deepcopy(uvicorn.config.LOGGING_CONFIG)
+    log_config["handlers"]["access"]["stream"] = "ext://sys.stderr"
+
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_config=log_config)
 
 
 if __name__ == "__main__":
