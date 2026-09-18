@@ -30,32 +30,36 @@ def move_for_key(key):
     """The move a key means, or None if it is not a movement key."""
     return MOVE_KEYS.get(key)
 
-# Colours
-OVERLAY = pygame.Color(238, 228, 218, 200)
-TEXT_DARK = pygame.Color(119, 110, 100)
+# Colours: endjin's web palette, the same one the browser UI uses. The grey
+# ramp climbs into the brand lime, then into ink once a tile is worth shouting
+# about; 2048 inverts, because it is the milestone.
+OVERLAY = pygame.Color(250, 250, 250, 220)
+TEXT_DARK = pygame.Color(24, 26, 29)
+TEXT_MUTED = pygame.Color(99, 104, 113)
 TEXT_LIGHT = pygame.Color(255, 255, 255)
-BACKGROUND = pygame.Color(188, 173, 159)
-EMPTY = pygame.Color(206, 192, 179)
-TILE_MAX = pygame.Color(18, 91, 146)
+TEXT_BRAND = pygame.Color(148, 215, 66)
+BACKGROUND = pygame.Color(226, 230, 235)
+EMPTY = pygame.Color(242, 244, 248)
+TILE_MAX = pygame.Color(0, 149, 255)
 
 CELL_STYLES = {
-    0: {"font": TEXT_DARK, "fill": EMPTY},
-    1: {"font": TEXT_DARK, "fill": pygame.Color(239, 229, 218)},
-    2: {"font": TEXT_DARK, "fill": pygame.Color(238, 225, 199)},
-    3: {"font": TEXT_LIGHT, "fill": pygame.Color(242, 177, 121)},
-    4: {"font": TEXT_LIGHT, "fill": pygame.Color(245, 149, 99)},
-    5: {"font": TEXT_LIGHT, "fill": pygame.Color(247, 127, 96)},
-    6: {"font": TEXT_LIGHT, "fill": pygame.Color(246, 94, 59)},
-    7: {"font": TEXT_LIGHT, "fill": pygame.Color(241, 219, 147)},
-    8: {"font": TEXT_LIGHT, "fill": pygame.Color(237, 204, 97)},
-    9: {"font": TEXT_LIGHT, "fill": pygame.Color(235, 193, 57)},
-    10: {"font": TEXT_LIGHT, "fill": pygame.Color(231, 181, 23)},
-    11: {"font": TEXT_DARK, "fill": pygame.Color(192, 154, 16)},
-    12: {"font": TEXT_LIGHT, "fill": pygame.Color(94, 218, 146)},
-    13: {"font": TEXT_LIGHT, "fill": pygame.Color(37, 187, 100)},
-    14: {"font": TEXT_LIGHT, "fill": pygame.Color(35, 140, 81)},
-    15: {"font": TEXT_LIGHT, "fill": pygame.Color(113, 180, 213)},
-    16: {"font": TEXT_LIGHT, "fill": pygame.Color(25, 130, 205)},
+    0: {"font": TEXT_MUTED, "fill": EMPTY},
+    1: {"font": TEXT_MUTED, "fill": pygame.Color(242, 244, 248)},
+    2: {"font": TEXT_MUTED, "fill": pygame.Color(226, 230, 235)},
+    3: {"font": pygame.Color(58, 95, 14), "fill": pygame.Color(211, 236, 180)},
+    4: {"font": pygame.Color(58, 95, 14), "fill": pygame.Color(191, 226, 142)},
+    5: {"font": pygame.Color(44, 74, 10), "fill": pygame.Color(168, 216, 103)},
+    6: {"font": pygame.Color(31, 55, 7), "fill": pygame.Color(148, 215, 66)},
+    7: {"font": TEXT_LIGHT, "fill": pygame.Color(120, 191, 32)},
+    8: {"font": TEXT_LIGHT, "fill": pygame.Color(106, 171, 28)},
+    9: {"font": TEXT_LIGHT, "fill": pygame.Color(96, 153, 26)},
+    10: {"font": TEXT_LIGHT, "fill": pygame.Color(77, 125, 19)},
+    11: {"font": TEXT_BRAND, "fill": pygame.Color(58, 95, 14)},
+    12: {"font": TEXT_BRAND, "fill": pygame.Color(38, 41, 46)},
+    13: {"font": pygame.Color(120, 191, 32), "fill": pygame.Color(24, 26, 29)},
+    14: {"font": TEXT_LIGHT, "fill": pygame.Color(0, 149, 255)},
+    15: {"font": TEXT_LIGHT, "fill": pygame.Color(54, 94, 214)},
+    16: {"font": TEXT_LIGHT, "fill": pygame.Color(118, 77, 149)},
 }
 
 # Define constants for the screen width and height
