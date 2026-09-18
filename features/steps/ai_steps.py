@@ -8,12 +8,15 @@ specification can assert.
 """
 
 import asyncio
+import io
+import json
+import os
 
 from behave import given, when, then
 from typesafe_sdk import TypeSafeAPIConnectionError
 
 from py2048.agent import build_state, move_criteria
-from py2048.agent.jev import JevPlayer
+from py2048.agent.jev import JevPlayer, transcript
 from py2048.agent.board import copy_board
 
 from board_steps import assert_grids_equal, grid_from_table, grid_from_board
@@ -236,3 +239,105 @@ def step_then_could_end(context, direction):
 def step_then_could_not_end(context, direction):
     result = state_for(context)["available_moves"][direction]
     assert not result["could_end_the_game"], f"{direction} is reported as risky"
+
+
+# --- the transcript -------------------------------------------------------
+#
+# What crossed the wire, captured into a buffer rather than printed. The
+# scenarios below read it back as JSON, which is the whole point of it: if it
+# cannot be parsed it cannot be inspected either.
+
+
+def transcript_records(context):
+    """Every record in the buffer. They are concatenated, not a JSON array."""
+    text = context.transcript_buffer.getvalue()
+    decoder = json.JSONDecoder()
+    records, position = [], 0
+    while position < len(text):
+        if text[position].isspace():
+            position += 1
+            continue
+        record, position = decoder.raw_decode(text, position)
+        records.append(record)
+    return records
+
+
+def one_record(context):
+    records = transcript_records(context)
+    assert len(records) == 1, f"recorded {len(records)} exchanges, expected 1"
+    return records[0]
+
+
+@given("the Jev transcript is captured")
+def step_given_transcript_captured(context):
+    context.transcript_buffer = io.StringIO()
+    transcript.log_to_stdout(stream=context.transcript_buffer)
+
+
+@given("the Jev transcript is not being collected")
+def step_given_transcript_off(context):
+    transcript.silence()
+
+
+@given("a key is configured")
+def step_given_key(context):
+    context.stubbed_key = "sk-not-a-real-key-0123456789"
+    os.environ["TYPESAFE_API_KEY"] = context.stubbed_key
+
+
+@then("one exchange was recorded")
+def step_then_one_record(context):
+    one_record(context)
+
+
+@then("the record shows the board that was sent")
+def step_then_record_board(context):
+    grid = one_record(context)["sent"]["state"]["board"]["grid"]
+    assert_grids_equal(grid_from_board(context.board), grid)
+
+
+@then("the record shows the criteria that were offered")
+def step_then_record_criteria(context):
+    criteria = one_record(context)["sent"]["questions"]["move"]["criteria"]
+    offered = set(move_criteria(build_state(context.board)))
+    assert set(criteria) == offered, (
+        f"recorded criteria for {sorted(criteria)}, offered {sorted(offered)}"
+    )
+
+
+@then("the record shows the answer that came back")
+def step_then_record_answer(context):
+    received = one_record(context)["received"]
+    assert received, "no answer was recorded"
+    assert received["choice"] == context.chosen, (
+        f"recorded {received['choice']}, the player played {context.chosen}"
+    )
+    assert received["probabilities"], "no probabilities were recorded"
+
+
+@then("the record shows nothing was sent")
+def step_then_record_nothing_sent(context):
+    assert one_record(context)["sent"] is None, "something was recorded as sent"
+
+
+@then('the record reports the outcome "{outcome}"')
+def step_then_record_outcome(context, outcome):
+    actual = one_record(context)["outcome"]
+    assert actual == outcome, f"recorded outcome {actual!r}, expected {outcome!r}"
+
+
+@then("the record reports the error")
+def step_then_record_error(context):
+    error = one_record(context).get("error")
+    assert error, "the failure was not recorded"
+
+
+@then("the key does not appear anywhere in the transcript")
+def step_then_no_key(context):
+    text = context.transcript_buffer.getvalue()
+    assert context.stubbed_key not in text, "the key was written to the transcript"
+
+
+@then("the transcript is switched off")
+def step_then_transcript_off(context):
+    assert not transcript.enabled(), "the transcript is still collecting"

@@ -114,7 +114,12 @@ The invariants, which are what a change is most likely to break:
 ## Secrets
 
 `TYPESAFE_API_KEY` lives in `.env` at the repository root, which is gitignored; `.env.example`
-is committed. It is read server-side in `web/app.py` and never reaches the browser. With no
+is committed. It is read server-side in `web/app.py` and never reaches the browser.
+
+`py2048-web` prints every Jev exchange to standard out as JSON (`agent/jev/transcript.py`).
+The payload is printed; the key never is, and nothing in that module reads the environment.
+A scenario in `ai_player.feature` stubs a key and checks it does not appear — keep it
+passing when changing what is recorded. With no
 key set everything still runs — the AI player falls back to a local policy, marked as such.
 
 ## Known traps

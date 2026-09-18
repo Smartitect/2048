@@ -261,6 +261,57 @@ Move RIGHT: merges nothing, leaves 4 empty cells, keeps the largest tile in a co
 Both leave the same room and both keep the big tile anchored. Only the last two clauses
 separate them.
 
+### Reading the exchange
+
+`py2048-web` prints every exchange with Jev to standard out as JSON: the whole state that
+went, the questions it was asked, the answer that came back, and what the player did with
+it.
+
+```
+$ uv run py2048-web
+{
+  "at": "2026-09-18T10:27:46.209977+00:00",
+  "move_number": 214,
+  "sent": {
+    "state": { "board": { "grid": [[128, 64, 16, 4], ...
+    "questions": { "move": { "type": "Choice", "instructions": ..., "criteria": {...} }, ... }
+  },
+  "received": { "choice": "RIGHT", "confidence": 0.71, "probabilities": {...}, "risk": 0.9 },
+  "latency_ms": 248,
+  "outcome": "played RIGHT"
+}
+```
+
+Two things make this worth having. The state is built from the board by code that can be
+wrong, and a payload subtly misdescribing the position looks exactly like a model playing
+badly. And the answer is the only evidence of *why* a move was played — the browser shows a
+summary, this shows all of it.
+
+A record is written even when Jev was not asked, so silence is never ambiguous:
+`"outcome": "not asked: only one legal move"`, or `"not asked: no TYPESAFE_API_KEY set"`. A
+call that failed carries an `error`.
+
+Standard out belongs to the transcript, and uvicorn's access log is moved to standard
+error, so it pipes:
+
+```bash
+uv run py2048-web 2>/dev/null | jq -c '{move: .move_number, outcome, choice: .received.choice}'
+uv run py2048-web 2>/dev/null | jq 'select(.outcome | startswith("fell back"))'
+```
+
+The records are pretty-printed but each is one JSON value, and `jq` reads a stream of them.
+Arrays of plain values stay on one line, so a board reads as four rows rather than
+twenty-four lines of digits.
+
+**It is off unless something asks for it.** `agent/jev/transcript.py` logs to `py2048.jev`,
+which has a null handler and does not propagate — so in the specifications, or in anything
+embedding the app, the record is never even built. `transcript.log_to_stdout()` turns it
+on and `transcript.silence()` turns it off again.
+
+The key is never in it. It appears in no part of the state, the questions or the answer,
+and nothing in that module reads the environment — `ai_player.feature` has a scenario that
+stubs a key and checks it does not turn up.
+
 ### What is deliberately left out
 
 - **The spawn itself.** Naming a cell the tile "will" appear in would be a guess presented
@@ -398,7 +449,7 @@ board representation can be optimised without changing behaviour.
 | `pygame_controls.feature` | Keys, restart, quit |
 | `web_api.feature` | The endpoints and the event stream |
 | `players.feature` | The contract all four meet, run against each of them in turn |
-| `ai_player.feature` | The state we send Jev, legal-moves-only, and visible fallbacks |
+| `ai_player.feature` | The state we send Jev, legal-moves-only, visible fallbacks, and the transcript |
 | `mcts_player.feature` | That the search stays legal, leaves the board alone and respects its clock |
 | `simple_players.feature` | The corner rules, and that random stays legal and spreads out |
 

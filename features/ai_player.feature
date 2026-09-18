@@ -219,3 +219,67 @@ Feature: An AI player chooses the moves
       |   |   |   |   |
     When the AI state is built after the moves UP, UP, LEFT, RIGHT, DOWN, RIGHT, DOWN, LEFT
     Then the AI state recent moves are LEFT, RIGHT, DOWN, RIGHT, DOWN, LEFT
+
+  Scenario: The exchange is written out as JSON, so it can be read afterwards
+    Given the Jev transcript is captured
+    And a board
+      | 2 | 2 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   | 4 |   |
+    And a model that answers LEFT with confidence 0.80
+    When the AI player chooses a move
+    Then one exchange was recorded
+    And the record shows the board that was sent
+    And the record shows the criteria that were offered
+    And the record shows the answer that came back
+    And the record reports the outcome "played LEFT"
+
+  Scenario: A call that failed is recorded with what went wrong
+    Given the Jev transcript is captured
+    And a board
+      | 2 | 2 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    And a model that fails
+    When the AI player chooses a move
+    Then one exchange was recorded
+    And the record shows the board that was sent
+    And the record reports the error
+
+  Scenario: When Jev is not asked at all, the record says why
+    Given the Jev transcript is captured
+    And a board
+      | 16 |   |   |   |
+      | 2  |   |   |   |
+      | 8  |   |   |   |
+      | 4  |   |   |   |
+    And a model that answers LEFT with confidence 0.90
+    When the AI player chooses a move
+    Then one exchange was recorded
+    And the record shows nothing was sent
+    And the record reports the outcome "not asked: only one legal move"
+
+  Scenario: The key is never written out
+    Given the Jev transcript is captured
+    And a key is configured
+    And a board
+      | 2 | 2 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    And a model that answers LEFT with confidence 0.80
+    When the AI player chooses a move
+    Then the key does not appear anywhere in the transcript
+
+  Scenario: Nothing is written when nobody is listening
+    Given the Jev transcript is not being collected
+    And a board
+      | 2 | 2 |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+      |   |   |   |   |
+    And a model that answers LEFT with confidence 0.80
+    When the AI player chooses a move
+    Then the transcript is switched off

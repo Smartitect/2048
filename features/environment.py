@@ -6,7 +6,10 @@ package (#16), so `from py2048 import Board` works because it is registered,
 not because of where behave happens to be run from.
 """
 
+import os
 import random
+
+from py2048.agent.jev import transcript
 
 # Every scenario starts from the same seed, so a scenario that spawns tiles
 # gets the same board every run. Scenarios that care about the specific tiles
@@ -15,6 +18,19 @@ DEFAULT_SEED = 2048
 
 
 def after_scenario(context, scenario):
+    # A scenario that captured Jev's transcript has to put the logger back, or
+    # every later scenario keeps writing into its buffer.
+    transcript.silence()
+
+    # And one that stubbed a key has to put the environment back, or a later
+    # scenario builds a real client and calls out.
+    if getattr(context, "stubbed_key", None) is not None:
+        if context.original_key is None:
+            os.environ.pop("TYPESAFE_API_KEY", None)
+        else:
+            os.environ["TYPESAFE_API_KEY"] = context.original_key
+        context.stubbed_key = None
+
     # A test client that was entered has to be exited, which also runs the
     # app's shutdown and stops any agent still playing.
     client = getattr(context, "entered_client", None)
@@ -33,6 +49,8 @@ def after_scenario(context, scenario):
 
 def before_scenario(context, scenario):
     random.seed(DEFAULT_SEED)
+    context.stubbed_key = None
+    context.original_key = os.environ.get("TYPESAFE_API_KEY")
     context.board = None
     context.move_result = None
     context.add_result = None

@@ -23,6 +23,7 @@ from typesafe_sdk import AsyncTypeSafeClient, Choice, RetryPolicy, Score, TypeSa
 from ..board import DIRECTIONS
 from ..player import decision
 from ..rules_player import TOP_RIGHT, preferred_move
+from . import transcript
 from .state import build_state, move_criteria
 
 MODEL = "jev-latest"
@@ -108,18 +109,28 @@ class JevPlayer:
         criteria = move_criteria(state)
 
         if not criteria:
+            self._not_asked(moves_played, "no legal moves")
             return None, decision(None, "fallback", reason="no legal moves")
 
         if len(criteria) == 1:
             # Nothing to decide: asking would spend a call to be told the only
             # move on offer.
             only = next(iter(criteria))
+            self._not_asked(moves_played, "only one legal move")
             return only, decision(only, "fallback", reason="only one legal move")
 
         client = await self.client()
         if client is None:
             move = fallback_move(state)
+            self._not_asked(moves_played, "no TYPESAFE_API_KEY set")
             return move, decision(move, "fallback", reason="no TYPESAFE_API_KEY set")
+
+        sent = {
+            "state": state,
+            "questions": transcript.questions_sent(
+                MOVE_INSTRUCTIONS, criteria, RISK_INSTRUCTIONS, RISK_LEVELS
+            ),
+        } if transcript.enabled() else None
 
         started = time.perf_counter()
         try:
@@ -134,18 +145,33 @@ class JevPlayer:
             )
         except TypeSafeError as error:
             move = fallback_move(state)
+            latency_ms = round((time.perf_counter() - started) * 1000)
+            transcript.record(
+                move_number=moves_played, sent=sent, received=None,
+                error=f"{type(error).__name__}: {error}",
+                latency_ms=latency_ms,
+                outcome=f"fell back to {move}",
+            )
             return move, decision(
                 move, "fallback",
                 reason=f"{type(error).__name__}: {error}",
-                latency_ms=round((time.perf_counter() - started) * 1000),
+                latency_ms=latency_ms,
             )
 
         latency_ms = round((time.perf_counter() - started) * 1000)
         answer = response.choices["move"]
         risk = response.scores["risk"].score if "risk" in response.scores else None
+        received = transcript.answer_received(answer, risk) if transcript.enabled() else None
+
+        def log(outcome):
+            transcript.record(
+                move_number=moves_played, sent=sent, received=received,
+                latency_ms=latency_ms, outcome=outcome,
+            )
 
         if answer.confidence is not None and answer.confidence < self.threshold:
             move = fallback_move(state)
+            log(f"confidence below {self.threshold}, fell back to {move}")
             return move, decision(
                 move, "fallback",
                 reason=f"confidence {answer.confidence:.2f} below {self.threshold}",
@@ -160,6 +186,7 @@ class JevPlayer:
         # would make it stale, so it is checked rather than trusted.
         if answer.choice not in state["available_moves"]:
             move = fallback_move(state)
+            log(f"{answer.choice} is not legal here, fell back to {move}")
             return move, decision(
                 move, "fallback",
                 reason=f"{answer.choice} is not legal on this board",
@@ -169,6 +196,7 @@ class JevPlayer:
                 latency_ms=latency_ms,
             )
 
+        log(f"played {answer.choice}")
         return answer.choice, decision(
             answer.choice, "jev",
             probabilities=dict(answer.probabilities),
@@ -176,6 +204,11 @@ class JevPlayer:
             risk=risk,
             latency_ms=latency_ms,
         )
+
+    def _not_asked(self, moves_played, reason):
+        """Say why nothing was sent, so silence is never ambiguous."""
+        transcript.record(move_number=moves_played, sent=None, received=None,
+                          outcome=f"not asked: {reason}")
 
 
 __all__ = ["JevPlayer", "DIRECTIONS", "build_state", "fallback_move", "api_key"]

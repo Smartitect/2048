@@ -72,6 +72,11 @@ Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Wi
 it still plays, using a local fallback policy that is clearly marked on screen — as are API
 errors and decisions the model was too unsure to make.
 
+`uv run py2048-web` prints every exchange with Jev to standard out as JSON — the state that
+went, the answer that came back, and what was done with it — so you can read what the model
+was actually working from. It pipes: `uv run py2048-web 2>/dev/null | jq .`. More on
+[reading the exchange][transcript-docs].
+
 **Monte Carlo Tree Search** needs no key and no network. Given half a second it plays about
 seven thousand random games from the current position and plays the move it spent most of
 that time on. It is a port of [an MSc assignment][mcts-repo] that reached the 2048 tile in
@@ -172,6 +177,7 @@ worth knowing before changing anything.
 [jev]: https://docs.typesafe.ai/introduction
 [state-docs]: docs/architecture.md#what-jev-is-told
 [mcts-docs]: docs/architecture.md#how-the-search-plays
+[transcript-docs]: docs/architecture.md#reading-the-exchange
 [players-docs]: docs/architecture.md#four-ai-players-one-interface
 [mcts-repo]: https://github.com/Smartitect/Applying-MCTS-To-2048
 [GitHub issues]: https://github.com/Smartitect/2048/issues
