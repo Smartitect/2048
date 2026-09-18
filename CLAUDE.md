@@ -130,8 +130,11 @@ The invariants, which are what a change is most likely to break:
 `TYPESAFE_API_KEY` lives in `.env` at the repository root, which is gitignored; `.env.example`
 is committed. It is read server-side in `web/app.py` and never reaches the browser.
 
-With no key set everything still runs: Jev falls back to the rules player, marked as such
-on screen, and the other three players never needed one.
+With no key set everything still runs, and **Jev is not registered at all** — the menu is
+built from `default_players()`, which only includes it when `api_key()` finds one. Offering
+a Jev that plays as the rules player would be showing a fallback and calling it a model.
+The other three never needed a key. A key that goes away mid-game still falls back, visibly,
+which is why `JevPlayer`'s own "no TYPESAFE_API_KEY set" path stays.
 
 `py2048-web` prints every Jev exchange to standard out as JSON (`agent/jev/transcript.py`).
 The payload is printed; the key never is, and nothing in that module reads the environment.

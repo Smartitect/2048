@@ -9,7 +9,12 @@ Feature: Every player meets the same contract
   judgement has a feature file of its own.
 
   Scenario: The register is what the browser offers
+    Given a key is configured
     Then the players on offer are jev, mcts, rules, random
+
+  Scenario: Jev is only offered when there is a key for it
+    Given no key is configured
+    Then the players on offer are mcts, rules, random
 
   Scenario Outline: A player only ever names a move the engine would accept
     Given the <player> player

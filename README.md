@@ -100,9 +100,11 @@ The four share almost nothing: a player is anything that answers
 
 ### Jev's key, and reading what it was sent
 
-Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Without a key
-Jev falls back to the corner rules, clearly marked on screen — as are API errors and
-decisions the model was too unsure to make. The other three never needed a key.
+Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. **Without a
+key Jev is not offered at all** — it would otherwise sit in the menu and play as the corner
+rules, which is a worse answer than not being there. The page says why the option is
+missing, and the other three never needed a key. API errors and decisions the model was too
+unsure to make still fall back to the corner rules, clearly marked on screen.
 
 `uv run py2048-web` prints every exchange with Jev to standard out as JSON — the state that
 went, the answer that came back, and what was done with it — so you can read what the model

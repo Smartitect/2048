@@ -305,3 +305,13 @@ def step_then_decision_probabilities(context):
     assert abs(sum(probabilities.values()) - 1) < 0.05, (
         f"probabilities do not add up: {probabilities}"
     )
+
+
+@then("the web state reports a key is configured")
+def step_then_key_configured(context):
+    assert web_state(context)["agent"]["keyConfigured"] is True, "no key was reported"
+
+
+@then("the web state reports no key is configured")
+def step_then_no_key_configured(context):
+    assert web_state(context)["agent"]["keyConfigured"] is False, "a key was reported"

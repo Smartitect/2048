@@ -28,7 +28,7 @@ from here.
 """
 
 from .board import DIRECTIONS, available_directions, copy_board
-from .jev import JevPlayer, build_state, legal_moves, move_criteria
+from .jev import JevPlayer, api_key, build_state, legal_moves, move_criteria
 from .mcts import MctsPlayer, Settings, flat_search, search
 from .contract import crowding_risk, decision
 from .random_player import RandomPlayer
@@ -39,21 +39,31 @@ def default_players():
     """Every player the browser offers, in the order it offers them.
 
     The order is the menu order, and the first is the one that has the game
-    until someone picks another. Jev leads because it is the one that needs a
-    key, and therefore the one whose state is worth showing; the other three
-    play with nothing but CPU.
+    until someone picks another.
+
+    **Jev is only offered when there is a key for it.** Without one it would sit
+    in the menu and play as the rules player, which is a worse answer than not
+    being there: you would be watching a fallback and told it was a model. The
+    other three need nothing but CPU, so the menu is never empty and `mcts`
+    leads when Jev is absent.
+
+    The key is read once, here, so a key added to `.env` after the server
+    started needs a restart to show up. `api_key()` itself is read per call, so
+    a key that goes away mid-game falls back rather than failing.
     """
-    return {
-        "jev": JevPlayer(),
-        "mcts": MctsPlayer(),
-        "rules": RulesPlayer(),
-        "random": RandomPlayer(),
-    }
+    players = {}
+    if api_key() is not None:
+        players["jev"] = JevPlayer()
+    players["mcts"] = MctsPlayer()
+    players["rules"] = RulesPlayer()
+    players["random"] = RandomPlayer()
+    return players
 
 
 __all__ = [
     # the players
     "JevPlayer",
+    "api_key",
     "MctsPlayer",
     "RulesPlayer",
     "RandomPlayer",

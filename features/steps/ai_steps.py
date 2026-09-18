@@ -282,7 +282,20 @@ def step_given_transcript_off(context):
 @given("a key is configured")
 def step_given_key(context):
     context.stubbed_key = "sk-not-a-real-key-0123456789"
+    context.key_touched = True
     os.environ["TYPESAFE_API_KEY"] = context.stubbed_key
+
+
+@given("no key is configured")
+def step_given_no_key(context):
+    """Take the key away for this scenario. `after_scenario` puts it back.
+
+    Scenarios that care which players are on offer have to say which case they
+    are in: whether the repository happens to have a `.env` is not something a
+    specification should depend on.
+    """
+    context.key_touched = True
+    os.environ.pop("TYPESAFE_API_KEY", None)
 
 
 @then("one exchange was recorded")

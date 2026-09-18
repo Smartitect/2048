@@ -22,13 +22,15 @@ def after_scenario(context, scenario):
     # every later scenario keeps writing into its buffer.
     transcript.silence()
 
-    # And one that stubbed a key has to put the environment back, or a later
-    # scenario builds a real client and calls out.
-    if getattr(context, "stubbed_key", None) is not None:
+    # And one that set or cleared the key has to put the environment back, or a
+    # later scenario builds a real client and calls out - or decides Jev is not
+    # on offer because an earlier scenario took its key away.
+    if getattr(context, "key_touched", False):
         if context.original_key is None:
             os.environ.pop("TYPESAFE_API_KEY", None)
         else:
             os.environ["TYPESAFE_API_KEY"] = context.original_key
+        context.key_touched = False
         context.stubbed_key = None
 
     # A test client that was entered has to be exited, which also runs the
@@ -50,6 +52,7 @@ def after_scenario(context, scenario):
 def before_scenario(context, scenario):
     random.seed(DEFAULT_SEED)
     context.stubbed_key = None
+    context.key_touched = False
     context.original_key = os.environ.get("TYPESAFE_API_KEY")
     context.board = None
     context.move_result = None
