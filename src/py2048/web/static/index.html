@@ -101,6 +101,7 @@
   }
   .badge.fallback { background: var(--warn); }
   .badge.human { background: var(--link); }
+  .badge.mcts { background: var(--brand-deep); }
   .bar-row { display: grid; grid-template-columns: 54px 1fr 44px; gap: 8px; align-items: center;
              font-size: 12px; margin-bottom: 4px; }
   .bar { background: var(--rule); border-radius: 3px; height: 14px; overflow: hidden; }
@@ -108,6 +109,8 @@
   /* Scoped to the bar: a bare `span` here would paint the row's label and
      percentage as well. */
   .bar-row.picked .bar span { background: var(--brand); }
+  .detail { margin: 8px 0 0; font-size: 12px; color: var(--ink-muted); }
+  .detail[hidden] { display: none; }
   .reason { margin: 8px 0 0; font-size: 12px; color: var(--warn); }
   .status { margin-top: 8px; font-size: 13px; min-height: 18px; color: var(--ink-muted); }
   .status.offline { color: var(--danger); font-weight: 700; }
@@ -141,7 +144,8 @@
   </div>
 
   <div class="controls">
-    <button id="agent-toggle">Let Jev play</button>
+    <select id="player" aria-label="Which AI player"></select>
+    <button id="agent-toggle">Let it play</button>
     <label class="hint" for="interval">every</label>
     <select id="interval">
       <option value="0.25">0.25s</option>
@@ -159,6 +163,7 @@
       <span class="badge" id="decision-source">jev</span>
     </div>
     <div id="decision-bars"></div>
+    <p class="detail" id="decision-detail" hidden></p>
     <p class="reason" id="decision-reason" hidden></p>
   </div>
 
@@ -179,6 +184,14 @@
     8192: ["#181a1d", "#78bf20"]
   };
 
+  // The players the server offers, given names a person would recognise. A
+  // name the server offers that is not listed here still works; it just shows
+  // up as the server spells it.
+  const PLAYERS = {
+    jev: {label: "Jev (TypeSafe AI)", verb: "Let Jev play", stop: "Stop Jev"},
+    mcts: {label: "Monte Carlo Tree Search", verb: "Let the search play", stop: "Stop the search"}
+  };
+
   const KEY_MOVES = {
     ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT",
     w: "UP", s: "DOWN", a: "LEFT", d: "RIGHT",
@@ -186,6 +199,9 @@
   };
 
   let agentRunning = false;
+  // The last agent state the server sent, so the controls can be redrawn when
+  // the person changes the menu without inventing a state to redraw them from.
+  let lastAgent = {};
   const board = document.getElementById("board");
   const overlay = document.getElementById("overlay");
   const status = document.getElementById("status");
@@ -256,6 +272,12 @@
       bars.appendChild(row);
     }
 
+    // What the player wants to say about a decision it did make, as opposed
+    // to why it fell back. A search reports how hard it looked.
+    const detail = document.getElementById("decision-detail");
+    detail.hidden = !decision.detail;
+    detail.textContent = decision.detail || "";
+
     const reason = document.getElementById("decision-reason");
     reason.hidden = !decision.reason;
     reason.textContent = decision.reason ? `Fell back: ${decision.reason}` : "";
@@ -263,12 +285,37 @@
 
   function renderAgent(state) {
     const agent = state.agent || {};
+    lastAgent = agent;
     agentRunning = !!agent.running;
-    const button = document.getElementById("agent-toggle");
-    button.textContent = agentRunning ? "Stop Jev" : "Let Jev play";
-    if (!agent.keyConfigured) {
-      button.title = "No TYPESAFE_API_KEY set - a local fallback policy will play instead";
+    const select = document.getElementById("player");
+
+    // Build the menu from what the server offers, once, so it cannot drift
+    // from the players that actually exist.
+    const offered = (agent.players || []).join(",");
+    if (select.dataset.offered !== offered) {
+      select.dataset.offered = offered;
+      select.innerHTML = "";
+      for (const name of agent.players || []) {
+        const option = document.createElement("option");
+        option.value = name;
+        option.textContent = (PLAYERS[name] || {}).label || name;
+        select.appendChild(option);
+      }
     }
+    // While a player is running, the menu shows who has the game; the server
+    // is the one that knows.
+    if (agentRunning && agent.player) select.value = agent.player;
+    select.disabled = agentRunning;
+
+    const chosen = select.value || agent.player;
+    const labels = PLAYERS[chosen] || {};
+    const button = document.getElementById("agent-toggle");
+    button.textContent = agentRunning
+      ? (labels.stop || "Stop")
+      : (labels.verb || "Let it play");
+    button.title = (chosen === "jev" && !agent.keyConfigured)
+      ? "No TYPESAFE_API_KEY set - a local fallback policy will play instead"
+      : "";
   }
 
   async function send(path, body) {
@@ -295,7 +342,16 @@
 
   document.getElementById("agent-toggle").addEventListener("click", () => {
     const interval = parseFloat(document.getElementById("interval").value);
-    send(agentRunning ? "/api/agent/stop" : "/api/agent/start", {intervalSeconds: interval});
+    const player = document.getElementById("player").value;
+    send(
+      agentRunning ? "/api/agent/stop" : "/api/agent/start",
+      {intervalSeconds: interval, player: player}
+    );
+  });
+
+  // Picking a different player only changes the button until it is started.
+  document.getElementById("player").addEventListener("change", () => {
+    renderAgent({agent: lastAgent});
   });
   document.getElementById("overlay-new").addEventListener("click", () => send("/api/new"));
 

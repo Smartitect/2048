@@ -117,3 +117,19 @@ Feature: Driving the game from a browser
     And the AI player has finished
     Then the web state reports the AI player is not running
     And the web state reports the game is over
+
+  Scenario: The browser is told which players it can choose between
+    Given a running web game
+    Then the web game offers the players jev, mcts
+
+  Scenario: The game can be handed to a player by name
+    Given a running web game driven by a scripted player
+    When the AI player scripted is started
+    Then the web state reports the AI player is running
+    And the web state reports scripted has the game
+
+  Scenario: A player the server does not have is refused
+    Given a running web game driven by a scripted player
+    When the AI player nobody is started
+    Then the web game refuses it
+    And the web state reports the AI player is not running

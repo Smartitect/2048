@@ -21,6 +21,7 @@ import time
 
 from typesafe_sdk import AsyncTypeSafeClient, Choice, RetryPolicy, Score, TypeSafeError
 
+from .decision import decision
 from .state import DIRECTIONS, build_state, move_criteria
 
 MODEL = "jev-latest"
@@ -62,20 +63,6 @@ def fallback_move(state):
         if direction in options:
             return direction
     return random.choice(list(options)) if options else None
-
-
-def decision(move, source, reason=None, probabilities=None, confidence=None,
-             risk=None, latency_ms=None):
-    """One decision, in the shape the browser renders."""
-    return {
-        "move": move,
-        "source": source,               # "jev" or "fallback"
-        "reason": reason,               # why it fell back, when it did
-        "probabilities": probabilities,
-        "confidence": confidence,
-        "risk": risk,
-        "latencyMs": latency_ms,
-    }
 
 
 class JevPlayer:

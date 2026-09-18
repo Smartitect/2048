@@ -57,30 +57,36 @@ Score:372, Merge count:46, Max tile:32, Max tile coords:(2,1)
 
 ## Letting an AI play
 
-The browser UI can hand the game to an AI player and let you watch. Press **Let Jev play**.
+The browser UI can hand the game to an AI player and let you watch. Pick one from the menu
+under the board and press play. There are two.
 
-The board goes to [TypeSafe AI's Jev][jev] as JSON, along with what each move would do —
-what it scores, how much room it leaves, how many directions remain legal afterwards, what
-it does to the order of the tiles, and whether an unlucky spawn could end the game — all
-played out on a copy by the engine, so the model judges facts rather than imagining them.
-Only the legal directions are offered.
-
-Each decision comes back with a probability for every direction and a confidence, and the
-page shows them next to the board, so you can watch *why* it moved. A decision takes around
-250ms.
+**Jev** sends the board to [TypeSafe AI's Jev][jev] as JSON, along with what each move
+would do — what it scores, how much room it leaves, how many directions remain legal
+afterwards, what it does to the order of the tiles, and whether an unlucky spawn could end
+the game — all played out on a copy by the engine, so the model judges facts rather than
+imagining them. Only the legal directions are offered, and a decision takes around 250ms.
+[What exactly it is told, and what is deliberately left out][state-docs], is in the
+architecture notes.
 
 Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Without a key
 it still plays, using a local fallback policy that is clearly marked on screen — as are API
 errors and decisions the model was too unsure to make.
 
-[What exactly it is told, and what is deliberately left out][state-docs], is in the
-architecture notes.
+**Monte Carlo Tree Search** needs no key and no network. Given half a second it plays about
+seven thousand random games from the current position and plays the move it spent most of
+that time on. It is a port of [an MSc assignment][mcts-repo] that reached the 2048 tile in
+72% of its final games; [how it works and what was fixed on the way in][mcts-docs] is in
+the architecture notes.
+
+Either way the page shows a probability for every direction and how sure the player was, so
+you can watch *why* it moved.
 
 ## Architecture
 
-One engine, four consumers: a console UI, a pygame UI, a browser UI and an AI player, all
+One engine, four consumers: a console UI, a pygame UI, a browser UI and the AI players, all
 independent users of one `Board` that holds every rule. That split is what lets the engine
-be driven by a search algorithm instead of a keyboard.
+be driven by a search algorithm instead of a keyboard — which is exactly what the MCTS
+player does.
 
 ```
 src/py2048/engine.py      Board + Tile. The engine: all game logic.
@@ -88,6 +94,7 @@ src/py2048/console.py     Console UI.    Entry point: py2048
 src/py2048/pygame_ui.py   Pygame UI.     Entry point: py2048-pygame
 src/py2048/web/           Browser UI.    Entry point: py2048-web
 src/py2048/agent/         AI players.    Board state in, one direction out
+                          jev.py asks a model; mcts.py searches locally
 ```
 
 **[docs/architecture.md](docs/architecture.md)** has the whole picture: the diagrams, the
@@ -152,5 +159,7 @@ worth knowing before changing anything.
 [uv]: https://docs.astral.sh/uv/
 [behave]: https://behave.readthedocs.io/
 [jev]: https://docs.typesafe.ai/introduction
-[state-docs]: docs/architecture.md#what-the-ai-player-is-told
+[state-docs]: docs/architecture.md#what-jev-is-told
+[mcts-docs]: docs/architecture.md#how-the-search-plays
+[mcts-repo]: https://github.com/Smartitect/Applying-MCTS-To-2048
 [GitHub issues]: https://github.com/Smartitect/2048/issues
