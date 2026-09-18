@@ -94,21 +94,29 @@ four, and the browser picks between them:
 | `rules` | Pushing into the top-right corner: UP, then RIGHT, then whatever is left | Nothing |
 | `random` | Picking uniformly from the legal moves | Nothing |
 
-They are deliberately separate. Each lives in its own module, and between them they share
-the contract and the board primitives and nothing else:
+They are deliberately separate. Between them they share the contract and the board
+primitives, and nothing else:
 
 ```
-agent/player.py          what a player is: choose(), close(), decision()
+agent/__init__.py        the register: which players there are, and in what order
+agent/contract.py        what a player is: choose(), close(), decision()
 agent/board.py           legal moves, copies — the primitives any player needs
-agent/jev/               player.py asks the model; state.py builds what it is told
-agent/mcts/              player.py wears the contract; search.py is the algorithm
+agent/runner.py          the loop, and which player has the game
+
+agent/jev/               player.py asks the model, state.py builds what it is told,
+                         transcript.py prints what crossed the wire
+agent/mcts/              player.py wears the contract, search.py is the algorithm
 agent/rules_player.py    the corner policy
 agent/random_player.py   the floor everything else is measured against
-agent/runner.py          the loop, and which player has the game
 ```
 
-**Adding a fifth** is a module of your own and one line in `default_players()`. Nothing
-else knows the names: the API, the runner and the browser menu all read the register.
+An agent gets a folder when it needs more than one module and a `*_player.py` when it does
+not. The file that meets the contract is always the player; `contract.py` is the thing it
+meets, which is why that one is not called `player.py` as well.
+
+**Adding a fifth** is a module of your own — or a folder, if it needs more than one — and
+one line in `default_players()`. Nothing else knows the names: the API, the runner and the
+browser menu all read the register.
 
 Three rules hold for all of them. **The engine stays authoritative** — a player only ever
 names a direction, and the engine decides what that does. **Only legal moves are offered or
@@ -120,7 +128,7 @@ boards to check exactly that, which is the test a fifth player would have to pas
 know rather than falling back to another, because a typo that quietly started a different
 player would look exactly like the one you asked for playing badly.
 
-Every decision has the same shape (`agent/player.py`), which is why the browser can draw
+Every decision has the same shape (`agent/contract.py`), which is why the browser can draw
 one player's answer with another's widget:
 
 ```python
@@ -176,7 +184,7 @@ games that reached 2048, with 72% reaching it.
 
 ## What Jev is told
 
-`agent/state.py` builds the JSON state; `agent/jev.py` asks Jev for a `Choice` between the
+`jev/state.py` builds the JSON state; `jev/player.py` asks Jev for a `Choice` between the
 legal directions. No key, an API error, or a confidence below the threshold falls back to a
 local policy and says so on screen.
 
@@ -328,7 +336,7 @@ stubs a key and checks it does not turn up.
 
 ## How the search plays
 
-`agent/mcts.py` is a port of [Applying MCTS to 2048][mcts-repo], an MSc assignment that
+`mcts/search.py` is a port of [Applying MCTS to 2048][mcts-repo], an MSc assignment that
 tuned these parameters over several hundred games and reached 2048 or better in 72% of its
 final runs. The algorithm and its numbers are that work's; what changed is that it runs on
 this engine, inside the player interface above.
@@ -399,7 +407,7 @@ line means roughly the same thing whichever player is on.
 
 The search is CPU-bound and takes about as long as it is given. On the event loop it would
 stall the event stream every single move, so `MctsPlayer.choose` hands it to
-`asyncio.to_thread`. Nothing in `mcts.py` is async or touches I/O, which is what makes that
+`asyncio.to_thread`. Nothing in `mcts/search.py` is async or touches I/O, which is what makes that
 safe.
 
 ### What changed in the port
@@ -467,9 +475,16 @@ and so would a weaker one.
 
 ## The diagrams
 
-The diagrams above are generated, not drawn. Each one is a self-contained HTML file in
+The four diagrams above are generated, not drawn. Each is a self-contained HTML file in
 [`diagrams/`](diagrams/) — that is the source — and the committed `.png` beside it is the
 export used in this document.
+
+| Diagram | Shows |
+|---|---|
+| `architecture-overview` | The engine and its four consumers |
+| `ai-move-sequence` | One AI move: browser → runner → Jev → engine → SSE |
+| `state-provenance` | How each fact in Jev's payload is measured, and which one is risk |
+| `mcts-tree` | The search tree's alternating move and spawn layers |
 
 They use endjin's web palette, stored as a Diagram Design profile. The project's
 `.diagram-design` marker binds the repository to it, so a new diagram picks up the same

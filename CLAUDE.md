@@ -43,9 +43,20 @@ reason #6 can change the board representation without changing behaviour.
 - `ai_player.feature` stubs the model. What is worth pinning down is the state we send,
   that only legal moves are offered and that fallbacks say why; whether Jev plays 2048
   well is not something a specification can assert. **No spec calls the live API.**
+- `players.feature` runs the contract against **every registered player** in turn, with
+  Jev's model stubbed and the search on a fraction of its time. A new player has to pass
+  it; that is what makes adding one cheap.
+- `mcts_player.feature` and `simple_players.feature` cover what each player always does —
+  a legal move, an untouched board, a clock respected, a rule followed. **How well a
+  player plays is a benchmark question, not a specification one**: a stronger search
+  would pass every scenario and so would a weaker one. Do not write a scenario that
+  asserts a score.
 - Randomness is seeded per scenario in `features/environment.py`. Assert a replay
   with the same seed rather than hard-coding spawn coordinates, which would pin the
   specs to the internals of `random.sample`.
+- `after_scenario` puts global state back: the Jev transcript's logger, and
+  `TYPESAFE_API_KEY` if a scenario stubbed it. A scenario that reaches for either has to
+  be undoable, or it leaks into the next one.
 
 ## Rules
 
@@ -69,7 +80,8 @@ src/py2048/engine.py      Board + Tile. The engine. All game logic.
 src/py2048/console.py     Console UI.     Entry point: py2048
 src/py2048/pygame_ui.py   Pygame UI.      Entry point: py2048-pygame
 src/py2048/web/           Browser UI.     Entry point: py2048-web
-src/py2048/agent/         AI players. state.py builds the JSON, jev.py asks the model.
+src/py2048/agent/         AI players. contract.py is what one is; jev/ mcts/
+                          rules_player.py random_player.py are the four.
 ```
 
 The invariants, which are what a change is most likely to break:
@@ -89,9 +101,11 @@ The invariants, which are what a change is most likely to break:
   `default_players()`** — never a special case in the runner, the API or the page, all of
   which read the register. `features/players.feature` runs the contract against every
   registered player; a new one has to pass it.
-- The players are deliberately separate: they share `agent/player.py` (the contract) and
-  `agent/board.py` (legal moves, copies) and nothing else. Judging a position belongs to
-  the agent that judges it — `jev/state.py` is Jev's payload, not a shared library.
+- The players are deliberately separate: they share `agent/contract.py` (what a player is)
+  and `agent/board.py` (legal moves, copies) and nothing else. Judging a position belongs
+  to the agent that judges it — `jev/state.py` is Jev's payload, not a shared library.
+  An agent gets a folder when it needs more than one module; `contract.py` is deliberately
+  not called `player.py`, because that name means an agent's own implementation.
 - Facts sent to the model are derived by playing the move on a copy. The random spawn is
   never stated as a consequence of a move — `could_end_the_game` is risk, not prediction.
 - `agent/mcts/search.py` is a port of the MSc assignment at `Smartitect/Applying-MCTS-To-2048`,
@@ -116,11 +130,13 @@ The invariants, which are what a change is most likely to break:
 `TYPESAFE_API_KEY` lives in `.env` at the repository root, which is gitignored; `.env.example`
 is committed. It is read server-side in `web/app.py` and never reaches the browser.
 
+With no key set everything still runs: Jev falls back to the rules player, marked as such
+on screen, and the other three players never needed one.
+
 `py2048-web` prints every Jev exchange to standard out as JSON (`agent/jev/transcript.py`).
 The payload is printed; the key never is, and nothing in that module reads the environment.
 A scenario in `ai_player.feature` stubs a key and checks it does not appear — keep it
-passing when changing what is recorded. With no
-key set everything still runs — the AI player falls back to a local policy, marked as such.
+passing when changing what is recorded.
 
 ## Known traps
 
@@ -132,24 +148,29 @@ by `features/symmetry.feature`, so do not re-add the flag without a failing case
 the non-standard spawn rate (#14 — now `FOUR_SPAWN_PROBABILITY = 0.1`, so scores are
 comparable with published 2048 benchmarks, and scores recorded before it are not).
 
+Two that came in with the ported search (#37) and would be easy to reintroduce:
+
+- **A terminal node must be scored, not abort the search.** The original ended the whole
+  traversal on meeting a dead position and reported "no move", which ended games that were
+  not over. `mcts_player.feature` has a board whose branches die.
+- **The transcript is on when it has a handler of its own, not when `isEnabledFor` says
+  so.** behave and uvicorn both attach a root handler at INFO; a level check alone
+  switches the transcript on by accident and builds kilobytes of JSON per move. Pinned by
+  "Nothing is written when nobody is listening".
+
 ## Workflow
 
 Work is issue-driven and incremental. The backlog lives in GitHub issues
 (`gh issue list`). One issue per branch, one PR per issue; the PR closes the issue.
 
-| Phase | Issues | Depends on |
-|---|---|---|
-| 1 — foundation | #7 dev container | — |
-| 2 — correctness | #8 `add_random_tiles` hang, #9 game-over detection | #7 |
-| 4 — tidy | #11 README, #12 debug leftovers, #13 pygame coordinates, #14 spawn probability | #13 needs #10 |
-| 5 — features | #15 browser UX, #6 engine performance | #6 needs **#10** |
+Phases 1 to 5 are done: the dev container (#7), the correctness fixes (#8, #9), the behave
+suite (#10), the tidy-up (#11–#14), the browser UI (#15), and then the AI work — Jev (#31),
+the richer payload (#33), the docs (#34), the ported search (#37), four players (#39) and
+the transcript (#41). `git log` has the order; there is no need to restate it here.
 
-Two ordering constraints are deliberate and should not be shortcut:
-
-1. **The dev container comes first** — nothing is reliably runnable without it.
-2. **Performance work comes strictly after the behave suite** (#6 after #10).
-   The point of the optimisation is to change the board representation without changing
-   behaviour, which is only safe with the specs in place.
-
-#15 (browser UX) starts with a planning session to settle architecture before any
-code is written.
+**#6 (engine performance) is the only issue open, and it is parked.** The constraint on it
+still holds and is the reason it was parked rather than done early: the point of the
+optimisation is to change the board representation *without changing behaviour*, which is
+only safe with the specifications in place. They are in place now, so #6 is unblocked —
+and the search (#37) is what makes it worth doing, since a faster `Board` is directly more
+rollouts per second.
