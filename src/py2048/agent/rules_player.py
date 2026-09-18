@@ -17,7 +17,7 @@ tuple buried in a client.
 """
 
 from .board import available_directions
-from .player import crowding_risk, decision
+from .contract import crowding_risk, decision
 
 # Push into the top-right: UP and RIGHT hold that corner, DOWN and LEFT break
 # it. Listed worst-last, so "the first legal one" is also "the least damaging".

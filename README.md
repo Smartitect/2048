@@ -60,6 +60,8 @@ Score:372, Merge count:46, Max tile:32, Max tile coords:(2,1)
 The browser UI can hand the game to an AI player and let you watch. Pick one from the menu
 under the board and press play. There are four.
 
+![The browser user interface, with the search playing](images/browser-ui.png)
+
 **Jev** sends the board to [TypeSafe AI's Jev][jev] as JSON, along with what each move
 would do — what it scores, how much room it leaves, how many directions remain legal
 afterwards, what it does to the order of the tiles, and whether an unlucky spawn could end
@@ -67,15 +69,6 @@ the game — all played out on a copy by the engine, so the model judges facts r
 imagining them. Only the legal directions are offered, and a decision takes around 250ms.
 [What exactly it is told, and what is deliberately left out][state-docs], is in the
 architecture notes.
-
-Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Without a key
-it still plays, using a local fallback policy that is clearly marked on screen — as are API
-errors and decisions the model was too unsure to make.
-
-`uv run py2048-web` prints every exchange with Jev to standard out as JSON — the state that
-went, the answer that came back, and what was done with it — so you can read what the model
-was actually working from. It pipes: `uv run py2048-web 2>/dev/null | jq .`. More on
-[reading the exchange][transcript-docs].
 
 **Monte Carlo Tree Search** needs no key and no network. Given half a second it plays about
 seven thousand random games from the current position and plays the move it spent most of
@@ -85,17 +78,41 @@ the architecture notes.
 
 **Corner rules** plays the first legal direction on a fixed list — UP, then RIGHT, then
 DOWN, then LEFT — so tiles pile into the top-right corner and it only breaks that when the
-engine gives it no choice. It is the oldest advice in 2048, and it is what Jev falls back
-to when it cannot be asked.
+engine gives it no choice. It is the oldest advice in 2048, and it plays a respectable
+game.
 
 **Random** picks a legal move and nothing more. It is the floor the others are measured
 against, and the smallest thing that meets the player contract.
 
-Whichever is playing, the page shows how sure it was and why it moved.
+| | Median score | Best tile |
+|---|---|---|
+| Random | 580 | 128 |
+| Corner rules | 2,808 | 256 |
+| Monte Carlo Tree Search | ~27,000 | 2048 |
+
+Small samples on fixed seeds, so read that as an ordering rather than a measurement.
+Whichever is playing, the page shows what it decided and what it had to go on — a
+distribution over the directions if it has one, and the rule it followed if it does not.
 
 The four share almost nothing: a player is anything that answers
 `choose(board, moves_played, recent_moves)` with a direction and a decision, so
 [adding a fifth][players-docs] is a module of its own and one line in the register.
+
+### Jev's key, and reading what it was sent
+
+Set `TYPESAFE_API_KEY` in `.env` (copy `.env.example`) to use the real model. Without a key
+Jev falls back to the corner rules, clearly marked on screen — as are API errors and
+decisions the model was too unsure to make. The other three never needed a key.
+
+`uv run py2048-web` prints every exchange with Jev to standard out as JSON — the state that
+went, the answer that came back, and what was done with it — so you can read what the model
+was actually working from. It pipes:
+
+```bash
+uv run py2048-web 2>/dev/null | jq -c '{move: .move_number, outcome, choice: .received.choice}'
+```
+
+More on [reading the exchange][transcript-docs].
 
 ## Architecture
 
@@ -148,8 +165,8 @@ game looks:
 
 The suite covers merge rules in all four directions, no-op detection, scoring, tile
 spawning and game over; it renders the pygame UI headlessly to check that the board is
-drawn the right way round; and it drives the browser API and the AI player without ever
-calling the live model.
+drawn the right way round; it drives the browser API and its event stream; and it runs the
+player contract against all four players — without ever calling the live model.
 
 ## Background
 

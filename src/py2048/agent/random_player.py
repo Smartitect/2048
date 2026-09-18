@@ -13,7 +13,7 @@ genuinely this player's distribution, which is why it can be reported as one.
 import random
 
 from .board import available_directions
-from .player import crowding_risk, decision
+from .contract import crowding_risk, decision
 
 
 class RandomPlayer:

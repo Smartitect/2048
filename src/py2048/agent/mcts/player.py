@@ -9,7 +9,7 @@ import asyncio
 import time
 
 from ..board import available_directions
-from ..player import crowding_risk, decision
+from ..contract import crowding_risk, decision
 from .search import Settings, flat_search, search
 
 

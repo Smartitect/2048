@@ -11,8 +11,10 @@ async def close(self):
     '''Release anything held open. Called once, when the app shuts down.'''
 ```
 
-That is the whole contract. There is no base class to inherit: a player that
-answers `choose` is a player, and `AgentRunner` cannot tell one from another.
+That is the whole contract - hence the name of this file. There is no base
+class to inherit: a player that answers `choose` is a player, and `AgentRunner`
+cannot tell one from another. Each agent's own implementation is the `player.py`
+inside its own folder, or a `*_player.py` module when one is all it needs.
 Three rules go with it, and they are the reason a player is trusted with a
 game:
 

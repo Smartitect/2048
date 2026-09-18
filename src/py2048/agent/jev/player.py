@@ -21,7 +21,7 @@ import time
 from typesafe_sdk import AsyncTypeSafeClient, Choice, RetryPolicy, Score, TypeSafeError
 
 from ..board import DIRECTIONS
-from ..player import decision
+from ..contract import decision
 from ..rules_player import TOP_RIGHT, preferred_move
 from . import transcript
 from .state import build_state, move_criteria

@@ -7,13 +7,19 @@ share that contract and the board primitives in `board.py`, and nothing else.
 `AgentRunner` cannot tell them apart, and neither can the page.
 
 ```
-player.py          what a player is: choose(), close(), decision()
+contract.py        what a player is: choose(), close(), decision()
 board.py           legal moves, copies - the primitives any player needs
+runner.py          the loop, and which player has the game
 jev/               asks TypeSafe AI's Jev to choose between the legal moves
 mcts/              searches the game tree locally, thousands of rollouts a move
 rules_player.py    pushes into one corner; the oldest advice in 2048
 random_player.py   picks a legal move and nothing more
 ```
+
+An agent gets a folder when it needs more than one module, and a `*_player.py`
+when it does not. Either way the file that meets the contract is the player, and
+`contract.py` is the thing it meets - which is why it is not called `player.py`
+too.
 
 **Adding a fifth** is a module of your own and one line in `default_players`.
 There is no base class to inherit and no registration to remember: implement
@@ -24,7 +30,7 @@ from here.
 from .board import DIRECTIONS, available_directions, copy_board
 from .jev import JevPlayer, build_state, legal_moves, move_criteria
 from .mcts import MctsPlayer, Settings, flat_search, search
-from .player import crowding_risk, decision
+from .contract import crowding_risk, decision
 from .random_player import RandomPlayer
 from .rules_player import BOTTOM_LEFT, TOP_RIGHT, RulesPlayer, preferred_move
 
